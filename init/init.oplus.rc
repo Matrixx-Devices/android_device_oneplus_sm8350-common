@@ -86,6 +86,10 @@ on boot
     chown cameraserver cameraserver /sys/kernel/tof_control/chip_enable
     chown cameraserver cameraserver /sys/kernel/tof_control/driver_debug
 
+    # Workarround for cache
+    rm -rf /data/resource-cache
+    rm -rf /data/system/package_cache
+    
 on property:ro.boot.prjname=*
     # Display
     setprop ro.separate.soft ${ro.boot.prjname}
