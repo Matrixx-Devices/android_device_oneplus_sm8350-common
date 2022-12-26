@@ -109,9 +109,6 @@ vendor.display.enable_optimize_refresh=1
 # DRM
 drm.service.enabled=true
 
-# FRP
-ro.frp.pst=/dev/block/bootdevice/by-name/frp
-
 # FUSE passthrough
 persist.sys.fuse.passthrough.enable=true
 
