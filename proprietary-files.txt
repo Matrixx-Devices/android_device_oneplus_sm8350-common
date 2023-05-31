@@ -563,6 +563,7 @@ vendor/lib64/vendor.qti.imsrtpservice@3.0.so
 # Iris
 odm/bin/hw/vendor.pixelworks.hardware.display.iris-service
 odm/bin/hw/vendor.pixelworks.hardware.feature.irisfeature-service
+odm/bin/irisConfig
 odm/etc/init/vendor.pixelworks.hardware.display.iris-service.rc
 odm/etc/init/vendor.pixelworks.hardware.feature.irisfeature-service.rc
 odm/etc/vintf/manifest/vendor.pixelworks.hardware.display.iris-service.xml
