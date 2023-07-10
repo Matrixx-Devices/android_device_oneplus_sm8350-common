@@ -85,4 +85,9 @@
     <string name="dolby_category">Dolby</string>
     <string name="dolby_title">Dolby Atmos</string>
     <string name="dolby_summary">Configure the audio output based on media content</string>
+
+    <!-- NrMode Switcher -->
+    <string name="nr_mode_category">NrMode</string>
+    <string name="nr_mode_switcher_title">NrMode Switcher</string>
+    <string name="nr_mode_switcher_summary">Select NSA / SA mode for 5G using oplus radio service</string>    
 </resources>

@@ -69,6 +69,22 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="nr_mode"
+        android:title="@string/nr_mode_category">
+
+		<Preference
+		    android:key="nr_mode_switcher"
+		    android:icon="@drawable/ic_radio"
+		    android:persistent="false"
+		    android:title="@string/nr_mode_switcher_title"
+		    android:summary="@string/nr_mode_switcher_summary">
+		    <intent
+		        android:targetPackage="org.nameless.nrmode"
+ 		       android:targetClass="org.nameless.nrmode.NrModeSettingsActivity" />
+		</Preference>
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="touchpanel"
         android:title="@string/touchpanel_title">
 
