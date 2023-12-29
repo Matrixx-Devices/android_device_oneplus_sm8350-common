@@ -66,6 +66,8 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     DolbyManager
 
+TARGET_EXCLUDES_AUDIOFX := true
+
 AUDIO_HAL_DIR := hardware/qcom-caf/sm8350/audio
 QCV_FAMILY_SKUS := lahaina yupik
 
