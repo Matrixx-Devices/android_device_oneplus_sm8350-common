@@ -58,6 +58,8 @@ PRODUCT_PACKAGES += \
     libvolumelistener \
     sound_trigger.primary.lahaina:32
 
+TARGET_EXCLUDES_AUDIOFX := true
+
 AUDIO_HAL_DIR := hardware/qcom-caf/sm8350/audio
 QCV_FAMILY_SKUS := lahaina yupik
 
