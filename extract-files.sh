@@ -77,6 +77,10 @@ function blob_fixup() {
         vendor/etc/media_*/video_system_specs.json)
             sed -i "/max_retry_alloc_output_timeout/ s/1000/0/" "${2}"
             ;;
+        vendor/etc/libnfc-hal-st.conf)
+            sed -i "s/NFC_DEBUG_ENABLED=3/NFC_DEBUG_ENABLED=0/" "${2}"
+            sed -i "s/STNFC_HAL_LOGLEVEL=1/STNFC_HAL_LOGLEVEL=0/" "${2}"
+            ;;
         vendor/etc/libnfc-nci.conf)
             sed -i "s/NFC_DEBUG_ENABLED=1/NFC_DEBUG_ENABLED=0/" "${2}"
             ;;
