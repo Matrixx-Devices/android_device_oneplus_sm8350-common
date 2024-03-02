@@ -69,6 +69,9 @@ on boot
     chown system system /sys/kernel/oplus_display/dynamic_osc_clock
     chown system system /sys/kernel/oplus_display/panel_serial_number
 
+    # Camera
+    chown cameraserver cameraserver /sys/kernel/ois_control/dump_registers
+
     # Sensors
     chown system system /sys/devices/platform/soc/soc:sensor_fb/adsp_notify
 
