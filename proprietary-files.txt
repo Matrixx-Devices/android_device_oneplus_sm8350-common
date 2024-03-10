@@ -290,6 +290,8 @@ odm/etc/dolby/multimedia_dolby_dax_default.xml
 odm/etc/init/vendor.dolby_v3_6.hardware.dms360@2.0-service.rc
 odm/etc/vintf/manifest/manifest_dax_dolby_v3_6.xml
 odm/etc/audio_effects.xml
+odm/etc/media_codecs_dolby_audio.xml:vendor/etc/media_codecs_dolby_audio.xml
+odm/lib/libstagefright_soft_ac4dec_v3_6.so:odm/lib/libstagefright_soft_ac4dec.so
 odm/lib/libstagefright_soft_ddpdec_v3_6.so:odm/lib/libstagefright_soft_ddpdec.so
 odm/lib/soundfx/libhwdap_v3_6.so
 odm/lib/soundfx/libswdap_v3_6.so
