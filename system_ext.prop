@@ -8,7 +8,6 @@ ro.oplus.camera.video.beauty.switch=oplus.switch.video.beauty
 ro.oplus.camera.speechassist=true
 ro.oplus.system.camera.flashlight=com.oplus.motor.flashlight
 ro.oplus.system.camera.name=com.oplus.camera
-ro.oplus.system.gallery.name=com.google.android.apps.photos
 
 # Display
 debug.sf.enable_hwc_vds=1
