@@ -254,6 +254,12 @@ PRODUCT_COPY_FILES += \
 PRODUCT_PACKAGES += \
     android.hardware.power-service-qti
 
+# Prebuilt packages
+PRODUCT_PACKAGES += \
+    MlkitBarcodeUI \
+    VisionBarcode \
+    QRCameraOverlay
+
 # QTI fwk-detect
 PRODUCT_PACKAGES += \
     libvndfwk_detect_jni.qti.vendor # Needed by CNE app
