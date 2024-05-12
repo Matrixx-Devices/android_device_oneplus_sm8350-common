@@ -9,4 +9,7 @@
           vibrator is capable of subtle vibrations -->
      <bool name="config_vibrateOnIconAnimation">true</bool>
 
+        <!-- Whether to disable Smart Pixels on UDFPS -->
+     <bool name="config_disableSmartPixelsOnUDFPS">true</bool>
+
 </resources>
