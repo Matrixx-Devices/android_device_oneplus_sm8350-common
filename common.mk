@@ -110,6 +110,9 @@ PRODUCT_SET_DEBUGFS_RESTRICTIONS := true
 PRODUCT_PACKAGES += \
     DeviceSettings
 
+# DeviceAsWebcam
+TARGET_BUILD_DEVICE_AS_WEBCAM := true
+
 # Display
 PRODUCT_PACKAGES += \
     android.hardware.graphics.mapper@3.0-impl-qti-display \
@@ -229,6 +232,7 @@ DEVICE_PACKAGE_OVERLAYS += \
 PRODUCT_ENFORCE_RRO_TARGETS := *
 PRODUCT_PACKAGES += \
     CarrierConfigResCommon \
+    DeviceAsWebcamResTarget \
     FrameworksResTarget \
     NcmTetheringOverlay \
     OPlusFrameworksResCommon \
