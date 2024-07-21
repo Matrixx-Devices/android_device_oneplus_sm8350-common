@@ -100,6 +100,10 @@ on early-boot
     start vendor.sensors
     verity_update_state
 
+# Hardware revision
+on property:ro.boot.hwlevel=*
+    setprop ro.boot.hardware.revision ${ro.boot.hwc}_${ro.boot.hwlevel}_${ro.boot.hwversion}
+
 on boot
     write /dev/cpuset/audio-app/cpus 1-2
     chown system /sys/devices/platform/soc/990000.i2c/i2c-0/0-0049/trusted_touch_enable
