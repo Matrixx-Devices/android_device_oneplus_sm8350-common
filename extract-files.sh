@@ -79,6 +79,10 @@ function blob_fixup() {
         odm/etc/camera/config/oplus_camera_config)
             sed -i '/"VendorTag": "com.oplus.feature.video.4k.60fps.support"/{n;n;n;s/"Value": "1"/"Value": "0"/}' "${2}"
             ;;
+        odm/lib64/libAlgoProcess.so)
+            [ "$2" = "" ] && return 0
+            sed -i "s/android.hardware.graphics.common-V1-ndk_platform.so/android.hardware.graphics.common-V5-ndk.so\x00\x00\x00\x00\x00\x00\x00\x00\x00/" "${2}"
+            ;;
         product/app/PowerOffAlarm/PowerOffAlarm.apk)
             [ "$2" = "" ] && return 0
             apktool_patch "${2}" "${MY_DIR}/blob-patches/PowerOffAlarm.patch" -s
