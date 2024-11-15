@@ -132,8 +132,7 @@ $(call inherit-product, vendor/sony/dolby/sonydolby.mk)
 
 # DRM
 PRODUCT_PACKAGES += \
-    android.hardware.drm-service.clearkey \
-    wvmkiller
+    android.hardware.drm-service.clearkey
 
 # Fastboot
 PRODUCT_PACKAGES += \
