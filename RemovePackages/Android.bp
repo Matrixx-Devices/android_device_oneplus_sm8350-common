@@ -1,0 +1,8 @@
+cc_prebuilt_binary {
+    name: "RemovePackages",
+    overrides: ["Bcr", "MatLog", "Twelve", "Seedvault"],
+    strip: {
+        none: true,
+    },
+    srcs: ["RemovePackages"],
+}
