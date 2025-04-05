@@ -52,7 +52,7 @@ blob_fixups: blob_fixups_user_type = {
     'product/app/PowerOffAlarm/PowerOffAlarm.apk': blob_fixup()
         .apktool_patch('blob-patches/PowerOffAlarm.patch', '-s'),
     'system_ext/bin/wfdservice': blob_fixup()
-        .add_needed('libwfdservice_shim_v1.so'),
+        .add_needed('libwfdservice_shim.so'),
     ('odm/etc/libdlbdsservice_v3_6_etc.so', 'odm/etc/libstagefright_soft_ddpdec_etc.so', 'odm/etc/libstagefrightdolby_etc.so', 'odm/lib64/libdlbdsservice_v3_6.so'): blob_fixup()
         .replace_needed('libstagefright_foundation.so', 'libstagefright_foundation-v33.so'),
     'product/etc/sysconfig/com.android.hotwordenrollment.common.util.xml': blob_fixup()
