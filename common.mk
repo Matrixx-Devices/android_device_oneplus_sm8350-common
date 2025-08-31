@@ -264,6 +264,13 @@ PRODUCT_COPY_FILES += \
 
 $(call soong_config_set,qtipower,tap_to_wake_node,/proc/touchpanel/double_tap_enable)
 
+# Powerhal properties
+PRODUCT_SYSTEM_PROPERTIES += \
+    pm.sleep_mode=1
+
+PRODUCT_VENDOR_PROPERTIES += \
+    vendor.post_boot.parsed=1
+
 # Sensors
 PRODUCT_PACKAGES += \
     android.hardware.sensors-service.multihal \
