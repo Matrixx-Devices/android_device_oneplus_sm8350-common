@@ -269,7 +269,9 @@ $(call soong_config_set,qtipower,tap_to_wake_node,/proc/touchpanel/double_tap_en
 
 # Powerhal properties
 PRODUCT_SYSTEM_PROPERTIES += \
-    pm.sleep_mode=1
+    pm.sleep_mode=1 \
+    ro.iorapd.enable=false \
+    iorapd.perfetto.enable=false
 
 PRODUCT_VENDOR_PROPERTIES += \
     vendor.post_boot.parsed=1
