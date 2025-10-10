@@ -271,7 +271,9 @@ $(call soong_config_set,qtipower,tap_to_wake_node,/proc/touchpanel/double_tap_en
 PRODUCT_SYSTEM_PROPERTIES += \
     pm.sleep_mode=1 \
     ro.iorapd.enable=false \
-    iorapd.perfetto.enable=false
+    iorapd.perfetto.enable=false \
+    persist.sys.perf.scroll_opt=true \
+    persist.sys.perf.scroll_opt.heavy_app=1
 
 PRODUCT_VENDOR_PROPERTIES += \
     vendor.post_boot.parsed=1
