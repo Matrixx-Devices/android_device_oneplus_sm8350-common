@@ -15,13 +15,14 @@
      limitations under the License.
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-	xmlns:settings="http://schemas.android.com/apk/res/org.lineageos.device.DeviceSettings">
+	xmlns:settings="http://schemas.android.com/apk/res/org.lineageos.device.DeviceSettings"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
         android:key="touchpanel"
         android:title="@string/touchpanel_title">
 
-        <SwitchPreference
+        <SwitchPreferenceCompat
             android:key="edge_touch"
             android:icon="@drawable/ic_edge_touch"
             android:summary="@string/edge_touch_summary"
@@ -34,7 +35,7 @@
             android:persistent="false"
             android:selectable="false" />
 
-        <SwitchPreference
+        <SwitchPreferenceCompat
             android:key="game_mode"
             android:icon="@drawable/ic_game_mode"
             android:summary="@string/game_mode_summary"
@@ -51,7 +52,7 @@
         android:key="usb"
         android:title="@string/usb_title">
 
-        <SwitchPreference
+        <SwitchPreferenceCompat
             android:key="usb2_fast_charge"
             android:icon="@drawable/ic_usb2_fc"
             android:summary="@string/usb2_fc_summary"

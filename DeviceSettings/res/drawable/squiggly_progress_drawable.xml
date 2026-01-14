@@ -1,0 +1,26 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape>
+            <size android:height="4dp" />
+            <solid android:color="#33AAAAAA" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+
+    <item android:id="@android:id/progress">
+        <clip>
+            <vector
+                android:width="200dp"
+                android:height="20dp"
+                android:viewportWidth="200"
+                android:viewportHeight="20">
+                <path
+                    android:name="wave_path"
+                    android:strokeColor="?android:attr/colorAccent"
+                    android:strokeWidth="3"
+                    android:strokeLineCap="round"
+                    android:pathData="M 0,10 C 12.5,0 12.5,20 25,10 C 37.5,0 37.5,20 50,10 C 62.5,0 62.5,20 75,10 C 87.5,0 87.5,20 100,10 C 112.5,0 112.5,20 125,10 C 137.5,0 137.5,20 150,10 C 162.5,0 162.5,20 175,10 C 187.5,0 187.5,20 200,10" />
+            </vector>
+        </clip>
+    </item>
+</layer-list>
