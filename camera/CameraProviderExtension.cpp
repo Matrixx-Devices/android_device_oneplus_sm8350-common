@@ -1,0 +1,81 @@
+/*
+ * Copyright (C) 2024 LibreMobileOS Foundation
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+#include "CameraProviderExtension.h"
+#include <fstream>
+#define TORCH_BRIGHTNESS "brightness"
+#define TORCH_MAX_BRIGHTNESS "max_brightness"
+
+// Corrected: Added TOGGLE_SWITCH_1 for the second LED
+#define TOGGLE_SWITCH_0 "/sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-02/c440000.qcom,spmi:qcom,pm8350c@2:qcom,flash_led@ee00/leds/led:switch_0/brightness"
+#define TOGGLE_SWITCH_1 "/sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-02/c440000.qcom,spmi:qcom,pm8350c@2:qcom,flash_led@ee00/leds/led:switch_1/brightness"
+
+static std::string kTorchLedPaths[] = {
+        "/sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-02/c440000.qcom,spmi:qcom,pm8350c@2:qcom,flash_led@ee00/leds/led:torch_0",
+        "/sys/devices/platform/soc/c440000.qcom,spmi/spmi-0/spmi0-02/c440000.qcom,spmi:qcom,pm8350c@2:qcom,flash_led@ee00/leds/led:torch_1",
+};
+
+/**
+ * Write value to path and close file.
+ */
+template <typename T>
+static void set(const std::string& path, const T& value) {
+    std::ofstream file(path);
+    file << value;
+}
+
+/**
+ * Read value from the path and close file.
+ */
+template <typename T>
+static T get(const std::string& path, const T& def) {
+    std::ifstream file(path);
+    T result;
+    file >> result;
+    return file.fail() ? def : result;
+}
+
+bool supportsTorchStrengthControlExt() {
+    return true;
+}
+
+bool supportsSetTorchModeExt() {
+    return false;
+}
+
+int32_t getTorchDefaultStrengthLevelExt() {
+    return 50;
+}
+int32_t getTorchMaxStrengthLevelExt() {
+    // 230 (out of 500) is a safe max brightness
+    return 230;
+}
+int32_t getTorchStrengthLevelExt() {
+    auto node = kTorchLedPaths[0] + "/" + TORCH_BRIGHTNESS;
+    return get(node, 0);
+}
+
+// Now toggles *both* switches and uses 1 to enable.
+void setTorchStrengthLevelExt(int32_t torchStrength, bool enabled) {
+    // Turn both switches off first
+    set(TOGGLE_SWITCH_0, 0);
+    set(TOGGLE_SWITCH_1, 0);
+
+    for (auto& path : kTorchLedPaths) {
+        auto node = path + "/" + TORCH_BRIGHTNESS;
+        set(node, torchStrength);
+    }
+
+    if (enabled) {
+        // Use 1 for both switches
+        set(TOGGLE_SWITCH_0, 1);
+        set(TOGGLE_SWITCH_1, 1);
+    }
+}
+
+void setTorchModeExt(bool enabled) {
+    int32_t strength = getTorchDefaultStrengthLevelExt();
+    setTorchStrengthLevelExt(enabled ? strength : 0, enabled);
+}
