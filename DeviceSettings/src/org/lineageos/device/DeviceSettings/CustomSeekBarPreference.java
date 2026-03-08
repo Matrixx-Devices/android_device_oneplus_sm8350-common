@@ -341,6 +341,24 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
         return mValue;
     }
 
+    /**
+     * Dynamically update the maximum value of this seekbar at runtime.
+     * Clamps the current value if it exceeds the new maximum.
+     */
+    public void setMaxValue(int newMax) {
+        if (newMax < mMinValue) newMax = mMinValue;
+        mMaxValue = newMax;
+        if (mValue > mMaxValue) {
+            mValue = mMaxValue;
+            persistInt(mValue);
+        }
+        if (mSeekBar != null) {
+            mSeekBar.setMax(getSeekValue(mMaxValue));
+            mSeekBar.setProgress(getSeekValue(mValue));
+        }
+        notifyChanged();
+    }
+
     public void refresh(int newValue) {
         setValue(newValue, mSeekBar != null);
     }

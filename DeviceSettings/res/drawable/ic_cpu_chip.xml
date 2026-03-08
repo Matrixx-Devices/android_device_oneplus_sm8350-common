@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CPU chip icon for CPU Optimizer button -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+    <!-- Chip body outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:pathData="M7,7 h10 a1,1 0 0,1 1,1 v8 a1,1 0 0,1 -1,1 h-10 a1,1 0 0,1 -1,-1 v-8 a1,1 0 0,1 1,-1 z" />
+    <!-- Inner 2x2 grid lines -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1"
+        android:pathData="M10,9 h4 M10,12 h4 M10,15 h4 M10,9 v6 M14,9 v6" />
+    <!-- Left pins -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M6,9.5 H3.5 M6,12 H3.5 M6,14.5 H3.5" />
+    <!-- Right pins -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M18,9.5 H20.5 M18,12 H20.5 M18,14.5 H20.5" />
+    <!-- Top pins -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M9.5,6 V3.5 M12,6 V3.5 M14.5,6 V3.5" />
+    <!-- Bottom pins -->
+    <path
+        android:strokeColor="@android:color/white"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M9.5,18 V20.5 M12,18 V20.5 M14.5,18 V20.5" />
+</vector>

@@ -19,6 +19,43 @@
     <string name="device_title">OnePlus Settings</string>
     <string name="device_summary">Adjust OnePlus specific device settings</string>
 
+    <!-- Notification slider -->
+    <string name="notification_slider_category_title">Alert slider</string>
+    <string name="notification_slider_title">Alert slider settings</string>
+    <string name="notification_slider_selection_dialog_title">Action</string>
+    <string name="notification_slider_top_position">Top position</string>
+    <string name="notification_slider_middle_position">Middle position</string>
+    <string name="notification_slider_bottom_position">Bottom position</string>
+    <string name="notification_slider_mode_total_silence">Total silence</string>
+    <string name="notification_slider_mode_alarms_only">Alarms only</string>
+    <string name="notification_slider_mode_priority_only">Priority only</string>
+    <string name="notification_slider_mode_none">All</string>
+
+    <string name="notification_slider_usage_title">Use slider for</string>
+    <string name="notification_slider_for_notification">Notification</string>
+    <string name="notification_slider_for_flashlight">Flashlight</string>
+    <string name="notification_slider_for_brightness">Brightness</string>
+    <string name="notification_slider_for_rotation">Rotation</string>
+    <string name="notification_slider_for_ringer">Ringer</string>
+    <string name="notification_slider_for_notification_ringer">Notification and ringer</string>
+
+    <string name="notification_slider_flashlight_off">Off</string>
+    <string name="notification_slider_flashlight_on">On</string>
+    <string name="notification_slider_flashlight_blink">Blink</string>
+
+    <string name="notification_slider_brightness_auto">Auto</string>
+    <string name="notification_slider_brightness_brightest">Brightest</string>
+    <string name="notification_slider_brightness_darkest">Darkest</string>
+
+    <string name="notification_slider_rotation_auto">Auto</string>
+    <string name="notification_slider_rotation_portrait">Portrait</string>
+    <string name="notification_slider_rotation_landscape_90">Landscape (90°)</string>
+    <string name="notification_slider_rotation_landscape_270">Landscape (270°)</string>
+
+    <string name="notification_slider_ringer_normal">Normal</string>
+    <string name="notification_slider_ringer_vibrate">Vibrate</string>
+    <string name="notification_slider_ringer_silent">Silent</string>
+
     <!-- Vibration control -->
     <string name="category_vibrator">Vibrator</string>
     <string name="vib_strength_title_head">Strength</string>
@@ -43,4 +80,65 @@
     <string name="edge_touch_title">Unlimit edge touch</string>
     <string name="edge_touch_summary">Improve your multi-touch experience in games</string>
     <string name="edge_touch_warning">May increase the possibility of accidental touch</string>
+
+     <!-- Powertools -->
+<string name="Powertools_title">Power Tools</string>
+    <string name="Powertools_summary">Advanced CPU, GPU, and Storage I/O tuning</string>
+
+    <string name="powerprofile_tile_label">Power Profile</string>
+    <string name="powerprofile_select_mode_title">System Power Profile</string>
+    <string name="powerprofile_mode_balance">Balanced</string>
+    <string name="powerprofile_mode_performance">Performance</string>
+    <string name="powerprofile_mode_battery_saver">Power Save</string>
+    <string name="powerprofile_mode_manual">Manual</string>
+    <string name="powerprofile_mode_unknown">Unknown</string>
+    <string name="power_profile_footer_summary">Select a predefined profile to optimize hardware behavior, or choose Manual to unlock individual CPU, GPU, and Storage controls.</string>
+
+    <string name="mode_status_balanced">Default system behavior • Dynamic scaling • BFQ I/O scheduler • Standard thermal throttling</string>
+    <string name="mode_status_performance">Maximum throughput • High minimum clocks • Kyber I/O scheduler • UI priority boosted • Background tasks aggressively cleared</string>
+    <string name="mode_status_battery_saver">Conservative scaling • A78 capped at 2.21 GHz • X1 capped at 2.59 GHz • GPU capped at 579 MHz • BFQ I/O • UFS scaling enabled • Background restricted</string>
+    <string name="mode_status_manual">Hardware limits unlocked • Custom frequencies, governors, and I/O schedulers enforced</string>
+
+
+
+    <string name="powertools_gpu_category_title">GPU Tuning (Adreno 660)</string>
+    <string name="powertools_gpu_enable_title">Manual GPU Control</string>
+    <string name="powertools_gpu_enable_summary">Override system GPU frequencies and governor</string>
+    <string name="gpu_min_frequency">Minimum Frequency</string>
+    <string name="gpu_max_frequency">Maximum Frequency</string>
+    <string name="gpu_governor">Governor</string>
+    <string name="gpu_governor_summary">Select GPU frequency scaling algorithm</string>
+
+    <string name="powertools_cpu_enable_title">Manual CPU Control</string>
+    <string name="powertools_cpu_enable_summary">Override Snapdragon 888 cluster limits and governors</string>
+    <string name="powertools_cpu_little_category">Little Cluster (Cortex-A55, Cores 0–3)</string>
+    <string name="powertools_cpu_big_category">Big Cluster (Cortex-A78, Cores 4–6)</string>
+    <string name="powertools_cpu_prime_category">Prime Cluster (Cortex-X1, Core 7)</string>
+    <string name="powertools_min_freq">Minimum Frequency</string>
+    <string name="powertools_max_freq">Maximum Frequency</string>
+    <string name="powertools_governor">Governor</string>
+
+    <string name="auto_thermal_category_title">Automatic Thermal Engine</string>
+    <string name="auto_thermal_enable_title">Enable Auto Thermal</string>
+    <string name="auto_thermal_enable_summary">Dynamically throttle hardware based on battery temperature thresholds (45°C / 49°C / 55°C)</string>
+    <string name="auto_thermal_footer">When Auto Thermal is enabled, manual controls are locked. The system continuously monitors battery thermals and steps down CPU/GPU clocks to safely dissipate heat.</string>
+    <string name="auto_thermal_live_summary">%1$s — %2$s</string>
+    
+    <string name="auto_thermal_notif_channel">Thermal Monitor</string>
+    <string name="auto_thermal_notif_title">Auto Thermal Monitor</string>
+    <string name="auto_thermal_notif_text">%1$s — %2$s</string>
+    <string name="auto_thermal_temp_battery">Battery: %1$s°C</string>
+    <string name="auto_thermal_temp_cpu">CPU: %1$s°C</string>
+    <string name="auto_thermal_temp_gpu">GPU: %1$s°C</string>
+
+    <string name="misc_category_title">Miscellaneous</string>
+    <string name="reset_on_boot_title">Reset on boot</string>
+    <string name="reset_on_boot_summary">Reset all manual CPU, GPU, and Storage settings to defaults on every boot</string>
+
+    <string name="storage_category_title">Storage I/O</string>
+    <string name="storage_enable_title">Enable storage control</string>
+    <string name="storage_enable_summary">Override power profile defaults for I/O scheduling</string>
+
+    <string name="io_scheduler_title">I/O Scheduler</string>
+    <string name="io_scheduler_dialog_title">Select I/O Scheduler</string>
 </resources>

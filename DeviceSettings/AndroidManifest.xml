@@ -26,13 +26,18 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="lineageos.permission.HARDWARE_ABSTRACTION_ACCESS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <protected-broadcast android:name="org.lineageos.device.DeviceSettings.UPDATE_SLIDER_SETTINGS" />
+    <protected-broadcast android:name="org.lineageos.device.DeviceSettings.UPDATE_SLIDER_POSITION" />
 
     <application
         android:icon="@drawable/ic_logo"
         android:label="@string/device_title"
         android:defaultToDeviceProtectedStorage="true"
         android:directBootAware="true"
-        android:theme="@style/Theme.SubSettingsBase.Expressive"
+        android:theme="@style/Theme.DeviceSettings"
         android:exported="true">
 
         <!-- Device Settings -->
@@ -59,6 +64,11 @@
         <activity android:name=".DeviceSettings"
             android:exported="false" />
 
+        <service
+            android:name=".KeyHandler"
+            android:permission="KeyHandlerService"
+            android:exported="true" />
+
         <receiver android:name=".Startup"
             android:exported="false">
             <intent-filter>
@@ -83,5 +93,52 @@
                 <action android:name="android.content.action.SEARCH_INDEXABLES_PROVIDER" />
             </intent-filter>
         </provider>
+        
+        <activity
+            android:name=".powertools.PowertoolsActivity"
+            android:label="@string/Powertools_title"
+            android:theme="@style/Theme.DeviceSettings"
+            android:enableOnBackInvokedCallback="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </activity>
+
+        <!-- Power Profile Quick Settings Tile -->
+        <service
+            android:name=".powertools.PowerProfileTileService"
+            android:label="@string/powerprofile_tile_label"
+            android:icon="@drawable/ic_thermal_balance"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.TOGGLEABLE_TILE"
+                android:value="true" />
+        </service>
+
+        <!-- Powertools Boot Receiver: restores CPU/GPU freq on reboot -->
+        <receiver
+            android:name=".powertools.PowertoolBootReceiver"
+            android:exported="false"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Auto Thermal Monitor (foreground service) -->
+        <service
+            android:name=".powertools.ThermalMonitorService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="thermal_monitoring" />
+        </service>
+
     </application>
 </manifest>

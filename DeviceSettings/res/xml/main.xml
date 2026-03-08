@@ -19,6 +19,38 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <PreferenceCategory
+        android:key="slider"
+        android:title="@string/notification_slider_category_title">
+
+        <ListPreference
+            android:key="action_top_position"
+            android:icon="@drawable/ic_up_icon"
+            android:dialogTitle="@string/notification_slider_selection_dialog_title"
+            android:title="@string/notification_slider_top_position"
+            android:entries="@array/slider_action_entries"
+            android:entryValues="@array/slider_action_values"
+            android:defaultValue="50" />
+
+        <ListPreference
+            android:key="action_middle_position"
+            android:icon="@drawable/ic_middle_icon"
+            android:dialogTitle="@string/notification_slider_selection_dialog_title"
+            android:title="@string/notification_slider_middle_position"
+            android:entries="@array/slider_action_entries"
+            android:entryValues="@array/slider_action_values"
+            android:defaultValue="51" />
+
+        <ListPreference
+            android:key="action_bottom_position"
+            android:icon="@drawable/ic_down_icon"
+            android:dialogTitle="@string/notification_slider_selection_dialog_title"
+            android:title="@string/notification_slider_bottom_position"
+            android:entries="@array/slider_action_entries"
+            android:entryValues="@array/slider_action_values"
+            android:defaultValue="52" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="touchpanel"
         android:title="@string/touchpanel_title">
 
@@ -74,4 +106,21 @@
             settings:units=""
             android:defaultValue="3" />
     </PreferenceCategory>
+
+    <!-- Powertools: Power profiles, CPU/GPU frequency tuning -->
+    <PreferenceCategory
+        android:key="powertools_category"
+        android:title="@string/Powertools_title">
+
+        <Preference
+            android:key="powertools_entry"
+            android:icon="@drawable/ic_thermal_balance"
+            android:title="@string/Powertools_title"
+            android:summary="@string/Powertools_summary"
+            android:layout="@layout/powertools_mode_card"
+            android:fragment="org.lineageos.device.DeviceSettings.powertools.PowertoolsSettingsFragment" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>
+

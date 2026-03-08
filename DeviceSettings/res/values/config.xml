@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-     Copyright (C) 2016-2022 crDroid Android Project
+     Copyright (C) 2018-2022 crDroid Android Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -15,16 +15,10 @@
      limitations under the License.
 -->
 <resources>
-
-    <color name="config_icon_tint">?android:attr/colorControlNormal</color>
-    <color name="disabled_text_color">#66000000</color>
-
-    <!-- M3 neutral ripple: 12% opacity on black (light) / white (dark) -->
-    <color name="ripple_color">#1F000000</color>
-    <color name="ripple_color_dark">#1FFFFFFF</color>
-
-    <!-- M3 surface tones -->
-    <color name="surface_container">#F3F3F3</color>
-    <color name="on_surface_variant">#49454F</color>
-
+    <!-- Default slider actions: Ring / Vibrate / Silent -->
+    <string-array name="config_defaultSliderActions" translatable="false">
+        <item>50</item>
+        <item>51</item>
+        <item>52</item>
+    </string-array>
 </resources>

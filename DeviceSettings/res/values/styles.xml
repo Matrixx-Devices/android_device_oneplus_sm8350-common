@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+        Override the pink accent ripple inherited from Theme.SubSettingsBase.Expressive.
+        Also plugs preference_m3.xml in as the default preference row layout.
+    -->
+    <style name="Theme.DeviceSettings" parent="Theme.SubSettingsBase.Expressive">
+        <item name="android:colorControlHighlight">@color/ripple_color</item>
+        <item name="colorControlHighlight">@color/ripple_color</item>
+    </style>
+
+</resources>

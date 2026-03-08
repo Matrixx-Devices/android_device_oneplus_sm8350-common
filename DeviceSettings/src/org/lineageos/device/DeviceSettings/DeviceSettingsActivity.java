@@ -16,27 +16,42 @@
 
 package org.lineageos.device.DeviceSettings;
 
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.DialogFragment;
-import android.app.Fragment;
-import android.content.DialogInterface;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
+
+import androidx.fragment.app.Fragment;
+import androidx.preference.Preference;
+import androidx.preference.PreferenceFragmentCompat;
 
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
-import com.android.settingslib.widget.SettingsBasePreferenceFragment;
 
-public class DeviceSettingsActivity extends CollapsingToolbarBaseActivity {
+public class DeviceSettingsActivity extends CollapsingToolbarBaseActivity
+        implements PreferenceFragmentCompat.OnPreferenceStartFragmentCallback {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getSupportFragmentManager().beginTransaction().replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame,
-                new DeviceSettings()).commit();
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame,
+                            new DeviceSettings())
+                    .commit();
+        }
+    }
+
+    @Override
+    public boolean onPreferenceStartFragment(PreferenceFragmentCompat caller, Preference pref) {
+        final String fragmentClass = pref.getFragment();
+        if (fragmentClass == null) return false;
+
+        final Fragment fragment = getSupportFragmentManager().getFragmentFactory()
+                .instantiate(getClassLoader(), fragmentClass);
+        fragment.setArguments(pref.getExtras());
+
+        getSupportFragmentManager().beginTransaction()
+                .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame, fragment)
+                .addToBackStack(null)
+                .commit();
+        return true;
     }
 }

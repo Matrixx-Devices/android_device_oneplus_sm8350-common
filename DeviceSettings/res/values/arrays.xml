@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2016-2022 crDroid Android Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources>
+
+    <!-- Unified slider actions: each position picks independently from ALL actions -->
+    <string-array name="slider_action_entries" translatable="false">
+        <item>Ring</item>
+        <item>Vibrate</item>
+        <item>Silent</item>
+        <item>DnD: Total Silence</item>
+        <item>DnD: Priority Only</item>
+        <item>DnD: Off (All Notifications)</item>
+        <item>Flashlight: Off</item>
+        <item>Flashlight: On</item>
+        <item>Flashlight: Blink</item>
+        <item>Brightness: Auto</item>
+        <item>Brightness: Maximum</item>
+        <item>Brightness: Minimum</item>
+        <item>Screen Rotation: Auto</item>
+        <item>Screen Rotation: Portrait</item>
+        <item>Screen Rotation: Landscape (90°)</item>
+        <item>Screen Rotation: Landscape (270°)</item>
+    </string-array>
+
+    <string-array name="slider_action_values" translatable="false">
+        <item>50</item>
+        <item>51</item>
+        <item>52</item>
+        <item>10</item>
+        <item>12</item>
+        <item>13</item>
+        <item>20</item>
+        <item>21</item>
+        <item>22</item>
+        <item>30</item>
+        <item>31</item>
+        <item>32</item>
+        <item>40</item>
+        <item>41</item>
+        <item>42</item>
+        <item>43</item>
+    </string-array>
+
+    <string-array name="slider_action_defaults" translatable="false">
+        <item>50</item>
+        <item>51</item>
+        <item>52</item>
+    </string-array>
+
+    <string-array name="notification_slider_usage_entries" translatable="false">
+        <item>@string/notification_slider_for_notification</item>
+        <item>@string/notification_slider_for_flashlight</item>
+        <item>@string/notification_slider_for_brightness</item>
+        <item>@string/notification_slider_for_rotation</item>
+        <item>@string/notification_slider_for_ringer</item>
+        <item>@string/notification_slider_for_notification_ringer</item>
+    </string-array>
+
+    <string-array name="notification_slider_usage_entry_values" translatable="false">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+    </string-array>
+
+    <string-array name="notification_slider_mode_entries" translatable="false">
+        <item>@string/notification_slider_mode_total_silence</item>
+        <item>@string/notification_slider_mode_priority_only</item>
+        <item>@string/notification_slider_mode_none</item>
+    </string-array>
+
+    <string-array name="notification_slider_mode_entry_values" translatable="false">
+        <item>10</item>
+        <item>12</item>
+        <item>13</item>
+    </string-array>
+
+    <string-array name="notification_slider_flashlight_entries" translatable="false">
+        <item>@string/notification_slider_flashlight_off</item>
+        <item>@string/notification_slider_flashlight_on</item>
+        <item>@string/notification_slider_flashlight_blink</item>
+    </string-array>
+
+    <string-array name="notification_slider_flashlight_entry_values" translatable="false">
+        <item>20</item>
+        <item>21</item>
+        <item>22</item>
+    </string-array>
+
+    <string-array name="notification_slider_brightness_entries" translatable="false">
+        <item>@string/notification_slider_brightness_auto</item>
+        <item>@string/notification_slider_brightness_brightest</item>
+        <item>@string/notification_slider_brightness_darkest</item>
+    </string-array>
+
+    <string-array name="notification_slider_brightness_entry_values" translatable="false">
+        <item>30</item>
+        <item>31</item>
+        <item>32</item>
+    </string-array>
+
+    <string-array name="notification_slider_rotation_entries" translatable="false">
+        <item>@string/notification_slider_rotation_auto</item>
+        <item>@string/notification_slider_rotation_portrait</item>
+        <item>@string/notification_slider_rotation_landscape_90</item>
+        <item>@string/notification_slider_rotation_landscape_270</item>
+    </string-array>
+
+    <string-array name="notification_slider_rotation_entry_values" translatable="false">
+        <item>40</item>
+        <item>41</item>
+        <item>42</item>
+        <item>43</item>
+    </string-array>
+
+    <string-array name="notification_slider_ringer_entries" translatable="false">
+        <item>@string/notification_slider_ringer_normal</item>
+        <item>@string/notification_slider_ringer_vibrate</item>
+        <item>@string/notification_slider_ringer_silent</item>
+    </string-array>
+
+    <string-array name="notification_slider_ringer_entry_values" translatable="false">
+        <item>50</item>
+        <item>51</item>
+        <item>52</item>
+    </string-array>
+
+    <string-array name="notification_ringer_slider_mode_entries" translatable="false">
+        <item>@string/notification_slider_mode_total_silence</item>
+        <item>@string/notification_slider_ringer_silent</item>
+        <item>@string/notification_slider_mode_priority_only</item>
+        <item>@string/notification_slider_ringer_vibrate</item>
+        <item>@string/notification_slider_mode_none</item>
+    </string-array>
+
+    <string-array name="notification_ringer_slider_mode_entry_values" translatable="false">
+        <item>60</item>
+        <item>65</item>
+        <item>62</item>
+        <item>64</item>
+        <item>63</item>
+    </string-array>
+
+    <!-- Powertools: Game packages list -->
+    <string-array name="game_packages">
+        <item>com.proximabeta.mf.uamo</item>
+        <item>com.dts.freefiremax</item>
+        <item>com.dts.freefireth</item>
+        <item>com.mobile.legends</item>
+        <item>com.tencent.KiHan</item>
+        <item>com.tencent.tmgp.cf</item>
+        <item>com.tencent.tmgp.cod</item>
+        <item>com.tencent.tmgp.gnyx</item>
+        <item>com.ea.gp.apexlegendsmobilefps</item>
+        <item>com.levelinfinite.hotta.gp</item>
+        <item>com.supercell.brawlstars</item>
+        <item>com.supercell.clashofclans</item>
+        <item>com.vng.mlbbvn</item>
+        <item>com.levelinfinite.sgameGlobal</item>
+        <item>com.tencent.tmgp.sgame</item>
+        <item>com.riotgames.league.wildrift</item>
+        <item>com.epicgames.fortnite</item>
+        <item>com.epigames.portal</item>
+        <item>com.tencent.lolm</item>
+        <item>com.pubg.imobile</item>
+        <item>com.pubg.krmobile</item>
+        <item>com.tencent.ig</item>
+        <item>com.tencent.tmgp.pubgmhd</item>
+        <item>com.vng.pubgmobile</item>
+        <item>com.activision.callofduty.shooter</item>
+        <item>com.garena.game.codm</item>
+        <item>com.miHoYo.GenshinImpact</item>
+        <item>com.kurogame.wutheringwaves</item>
+        <item>jp.konami.pesam</item>
+        <item>com.ea.gp.fifamobile</item>
+        <item>com.madfingergames.legends</item>
+        <item>com.riotgames.league.teamfighttactics</item>
+    </string-array>
+
+    <!-- Powertools: GPU (Adreno 660, SD888) -->
+    <string-array name="gpu_frequency_entries" translatable="false">
+        <item>315 MHz</item>
+        <item>379 MHz</item>
+        <item>443 MHz</item>
+        <item>491 MHz</item>
+        <item>540 MHz</item>
+        <item>579 MHz</item>
+        <item>608 MHz</item>
+        <item>676 MHz</item>
+        <item>738 MHz</item>
+        <item>778 MHz</item>
+        <item>840 MHz</item>
+    </string-array>
+    <string-array name="gpu_frequency_values" translatable="false">
+        <item>315000000</item>
+        <item>379000000</item>
+        <item>443000000</item>
+        <item>491000000</item>
+        <item>540000000</item>
+        <item>579000000</item>
+        <item>608000000</item>
+        <item>676000000</item>
+        <item>738000000</item>
+        <item>778000000</item>
+        <item>840000000</item>
+    </string-array>
+
+    <!-- Powertools: CPU Little (Cortex-A55, policy0) -->
+    <string-array name="cpu_little_freq_entries" translatable="false">
+        <item>300 MHz</item>
+        <item>403 MHz</item>
+        <item>518 MHz</item>
+        <item>614 MHz</item>
+        <item>691 MHz</item>
+        <item>806 MHz</item>
+        <item>940 MHz</item>
+        <item>1056 MHz</item>
+        <item>1132 MHz</item>
+        <item>1228 MHz</item>
+        <item>1324 MHz</item>
+        <item>1440 MHz</item>
+        <item>1555 MHz</item>
+        <item>1670 MHz</item>
+        <item>1804 MHz</item>
+    </string-array>
+    <string-array name="cpu_little_freq_values" translatable="false">
+        <item>300000</item>
+        <item>403200</item>
+        <item>518400</item>
+        <item>614400</item>
+        <item>691200</item>
+        <item>806400</item>
+        <item>940800</item>
+        <item>1056000</item>
+        <item>1132800</item>
+        <item>1228800</item>
+        <item>1324800</item>
+        <item>1440000</item>
+        <item>1555200</item>
+        <item>1670400</item>
+        <item>1804800</item>
+    </string-array>
+
+    <!-- Powertools: CPU Big (Cortex-A78, policy4) -->
+    <string-array name="cpu_big_freq_entries" translatable="false">
+        <item>300 MHz</item>
+        <item>403 MHz</item>
+        <item>518 MHz</item>
+        <item>614 MHz</item>
+        <item>710 MHz</item>
+        <item>883 MHz</item>
+        <item>998 MHz</item>
+        <item>1113 MHz</item>
+        <item>1209 MHz</item>
+        <item>1324 MHz</item>
+        <item>1440 MHz</item>
+        <item>1555 MHz</item>
+        <item>1651 MHz</item>
+        <item>1766 MHz</item>
+        <item>1881 MHz</item>
+        <item>1996 MHz</item>
+        <item>2112 MHz</item>
+        <item>2212 MHz</item>
+        <item>2227 MHz</item>
+        <item>2419 MHz</item>
+    </string-array>
+    <string-array name="cpu_big_freq_values" translatable="false">
+        <item>300000</item>
+        <item>403200</item>
+        <item>518400</item>
+        <item>614400</item>
+        <item>710400</item>
+        <item>883200</item>
+        <item>998400</item>
+        <item>1113600</item>
+        <item>1209600</item>
+        <item>1324800</item>
+        <item>1440000</item>
+        <item>1555200</item>
+        <item>1651200</item>
+        <item>1766400</item>
+        <item>1881600</item>
+        <item>1996800</item>
+        <item>2112000</item>
+        <item>2212000</item>
+        <item>2227200</item>
+        <item>2419200</item>
+    </string-array>
+
+    <!-- Powertools: CPU Prime (Cortex-X1, policy7) -->
+    <string-array name="cpu_prime_freq_entries" translatable="false">
+        <item>300 MHz</item>
+        <item>403 MHz</item>
+        <item>518 MHz</item>
+        <item>614 MHz</item>
+        <item>844 MHz</item>
+        <item>1036 MHz</item>
+        <item>1171 MHz</item>
+        <item>1286 MHz</item>
+        <item>1401 MHz</item>
+        <item>1536 MHz</item>
+        <item>1651 MHz</item>
+        <item>1766 MHz</item>
+        <item>1881 MHz</item>
+        <item>1996 MHz</item>
+        <item>2131 MHz</item>
+        <item>2246 MHz</item>
+        <item>2361 MHz</item>
+        <item>2476 MHz</item>
+        <item>2592 MHz</item>
+        <item>2707 MHz</item>
+        <item>2841 MHz</item>
+    </string-array>
+    <string-array name="cpu_prime_freq_values" translatable="false">
+        <item>300000</item>
+        <item>403200</item>
+        <item>518400</item>
+        <item>614400</item>
+        <item>844800</item>
+        <item>1036800</item>
+        <item>1171200</item>
+        <item>1286400</item>
+        <item>1401600</item>
+        <item>1536000</item>
+        <item>1651200</item>
+        <item>1766400</item>
+        <item>1881600</item>
+        <item>1996800</item>
+        <item>2131200</item>
+        <item>2246400</item>
+        <item>2361600</item>
+        <item>2476800</item>
+        <item>2592000</item>
+        <item>2707200</item>
+        <item>2841600</item>
+    </string-array>
+
+    <!-- Powertools: CPU Governors (all options) -->
+    <string-array name="cpu_governor_entries" translatable="false">
+        <item>schedutil</item>
+        <item>performance</item>
+        <item>conservative</item>
+        <item>powersave</item>
+    </string-array>
+    <string-array name="cpu_governor_values" translatable="false">
+        <item>schedutil</item>
+        <item>performance</item>
+        <item>conservative</item>
+        <item>powersave</item>
+    </string-array>
+
+    <!-- Powertools: CPU Governors for Performance Mode -->
+    <string-array name="cpu_governor_performance_entries" translatable="false">
+        <item>schedutil</item>
+        <item>performance</item>
+    </string-array>
+    <string-array name="cpu_governor_performance_values" translatable="false">
+        <item>schedutil</item>
+        <item>performance</item>
+    </string-array>
+
+    <!-- Powertools: CPU Governors for Powersave Mode -->
+    <string-array name="cpu_governor_powersave_entries" translatable="false">
+        <item>schedutil</item>
+        <item>conservative</item>
+        <item>powersave</item>
+    </string-array>
+    <string-array name="cpu_governor_powersave_values" translatable="false">
+        <item>schedutil</item>
+        <item>conservative</item>
+        <item>powersave</item>
+    </string-array>
+
+    <!-- Powertools: GPU Governors (Adreno 660 - all options) -->
+    <string-array name="gpu_governor_entries" translatable="false">
+        <item>Userspace</item>
+        <item>Powersave</item>
+        <item>Performance</item>
+        <item>Simple Ondemand</item>
+        <item>MSM Adreno TZ</item>
+    </string-array>
+    <string-array name="gpu_governor_values" translatable="false">
+        <item>userspace</item>
+        <item>powersave</item>
+        <item>performance</item>
+        <item>simple_ondemand</item>
+        <item>msm-adreno-tz</item>
+    </string-array>
+
+    <!-- Powertools: GPU Governors for Performance Mode -->
+    <string-array name="gpu_governor_performance_entries" translatable="false">
+        <item>MSM Adreno TZ</item>
+        <item>Simple Ondemand</item>
+        <item>Performance</item>
+    </string-array>
+    <string-array name="gpu_governor_performance_values" translatable="false">
+        <item>msm-adreno-tz</item>
+        <item>simple_ondemand</item>
+        <item>performance</item>
+    </string-array>
+
+    <!-- Powertools: GPU Governors for Powersave Mode -->
+    <string-array name="gpu_governor_powersave_entries" translatable="false">
+        <item>Userspace</item>
+        <item>Powersave</item>
+    </string-array>
+    <string-array name="gpu_governor_powersave_values" translatable="false">
+        <item>userspace</item>
+        <item>powersave</item>
+    </string-array>
+
+    <!-- Powertools: Power Profile Mode -->
+    <string-array name="power_profile_modes" translatable="false">
+        <item>Normal</item>
+        <item>Performance</item>
+        <item>Powersave</item>
+    </string-array>
+    <string-array name="power_profile_mode_values" translatable="false">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+
+    
+<string-array name="io_scheduler_entries" translatable="false">
+    <item>BFQ</item>
+    <item>Kyber</item>
+    <item>MQ-Deadline</item>
+</string-array>
+
+<string-array name="io_scheduler_values" translatable="false">
+    <item>bfq</item>
+    <item>kyber</item>
+    <item>mq-deadline</item>
+</string-array>
+
+    <!-- Powertools: IO Schedulers for Performance Mode -->
+<string-array name="io_scheduler_performance_values" translatable="false">
+        <item>kyber</item>
+        <item>mq-deadline</item>
+</string-array>
+
+    <!-- Powertools: IO Schedulers for Powersave Mode -->
+<string-array name="io_scheduler_powersave_values" translatable="false">
+        <item>bfq</item>
+        <item>mq-deadline</item>
+</string-array>
+
+</resources>
