@@ -259,26 +259,11 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
     public void onStartTrackingTouch(SeekBar seekBar) {
         mTrackingValue = mValue;
         mTrackingTouch = true;
-        
-        android.graphics.drawable.Drawable drawable = seekBar.getProgressDrawable();
-        if (drawable instanceof android.graphics.drawable.AnimatedVectorDrawable) {
-            ((android.graphics.drawable.AnimatedVectorDrawable) drawable).start();
-        } else if (android.os.Build.VERSION.SDK_INT >= 33) {
-            seekBar.setTransitionName("squiggly_wave");
-            seekBar.animate().scaleY(1.2f).setDuration(200).start();
-        }
     }
 
     @Override
     public void onStopTrackingTouch(SeekBar seekBar) {
         mTrackingTouch = false;
-        
-        android.graphics.drawable.Drawable drawable = seekBar.getProgressDrawable();
-        if (drawable instanceof android.graphics.drawable.AnimatedVectorDrawable) {
-            ((android.graphics.drawable.AnimatedVectorDrawable) drawable).stop();
-        } else {
-            seekBar.animate().scaleY(1.0f).setDuration(200).start();
-        }
 
         if (!mContinuousUpdates)
             onProgressChanged(mSeekBar, getSeekValue(mTrackingValue), false);

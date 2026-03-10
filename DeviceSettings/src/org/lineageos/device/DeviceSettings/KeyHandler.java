@@ -44,21 +44,23 @@ public class KeyHandler implements DeviceKeyHandler {
         @Override
         public void onReceive(Context context, Intent intent) {
             int[] actions = intent.getIntArrayExtra(Constants.EXTRA_SLIDER_ACTIONS);
+            boolean isHardware = intent.getBooleanExtra("is_hardware", true); // Default true if missing
             if (actions == null) {
                 Log.w(TAG, "Received UPDATE_SLIDER_SETTINGS with null actions, ignoring");
                 return;
             }
             mSliderController.update(actions);
-            mSliderController.restoreState(context, false);
+            mSliderController.restoreState(context, isHardware);
         }
     };
 
-    public KeyHandler(Context context) {
+public KeyHandler(Context context) {
         mContext = context;
         mSliderController = new UnifiedSliderController(mContext);
-        mContext.registerReceiver(mSliderUpdateReceiver,
-                new IntentFilter(Constants.ACTION_UPDATE_SLIDER_SETTINGS));
         mInputManager = mContext.getSystemService(InputManager.class);
+        mContext.registerReceiver(mSliderUpdateReceiver,
+                new IntentFilter(Constants.ACTION_UPDATE_SLIDER_SETTINGS), 
+                Context.RECEIVER_EXPORTED);
     }
 
     @Override
@@ -79,7 +81,7 @@ public class KeyHandler implements DeviceKeyHandler {
             return event;
         }
 
-        mSliderController.processEvent(mContext);
+        mSliderController.processEvent(mContext, true);
         return null;
     }
 }

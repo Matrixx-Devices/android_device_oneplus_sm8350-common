@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,7 +35,8 @@ public abstract class SliderControllerBase {
 
     private Vibrator mVibrator;
 
-    private int[] mActions = null;
+    protected int[] mActions = null;
+    protected boolean mIsHardware = false;
 
     public SliderControllerBase(Context context) {
         mContext = context;
@@ -53,13 +54,21 @@ public abstract class SliderControllerBase {
 
     protected abstract int processAction(int action);
 
-    public final int processEvent(Context context) {
+    // Added this to fix "method does not override or implement a method from a supertype" errors
+    public abstract void reset();
+
+    public final int processEvent(Context context, boolean isHardware) {
+        mIsHardware = isHardware;
         int result = restoreState(context, true);
         if (result > 0) {
             doHapticFeedback();
         }
 
         return result;
+    }
+
+    public final int processEvent(Context context) {
+        return processEvent(context, true);
     }
 
     public static void sendUpdateBroadcast(Context context, int position, int result) {
@@ -71,8 +80,6 @@ public abstract class SliderControllerBase {
         Log.d(TAG, "slider change to positon " + position);
     }
 
-    public abstract void reset();
-
     public final int restoreState(Context context, boolean notify) {
         int ret = 0;
         if (mActions == null) {
@@ -80,7 +87,20 @@ public abstract class SliderControllerBase {
         }
 
         try {
-            int state = Integer.parseInt(FileUtils.readOneLine(Constants.SLIDER_STATE).trim());
+            String stateString = FileUtils.readOneLine(Constants.SLIDER_STATE);
+            if (stateString == null) {
+                Log.w(TAG, "Tri-state node not ready or empty");
+                return ret;
+            }
+            
+            int state = Integer.parseInt(stateString.trim());
+            
+            // Bounds check in case kernel temporarily reports 0 or out of range
+            if (state < 1 || state > mActions.length) {
+                Log.w(TAG, "Invalid slider state reported by kernel: " + state);
+                return ret;
+            }
+            
             ret = processAction(mActions[state - 1]);
             if (ret > 0 && notify) {
                 sendUpdateBroadcast(context, state - 1, ret);
@@ -89,6 +109,11 @@ public abstract class SliderControllerBase {
             Log.e(TAG, "Failed to restore slider state", e);
         }
         return ret;
+    }
+
+    public final int restoreState(Context context, boolean notify, boolean isHardware) {
+        mIsHardware = isHardware;
+        return restoreState(context, notify);
     }
 
     private void doHapticFeedback() {

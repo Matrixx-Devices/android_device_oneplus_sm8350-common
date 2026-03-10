@@ -158,19 +158,19 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         if (preference == mGameModeSwitch) {
             boolean enabled = (Boolean) newValue;
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-            sharedPrefs.edit().putBoolean(KEY_GAME_SWITCH, enabled).commit();
+            sharedPrefs.edit().putBoolean(KEY_GAME_SWITCH, enabled).apply();
             Utils.writeValue(FILE_GAME, enabled ? "1" : "0");
             return true;
         } else if (preference == mEdgeTouchSwitch) {
             boolean enabled = (Boolean) newValue;
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-            sharedPrefs.edit().putBoolean(KEY_EDGE_TOUCH, enabled).commit();
+            sharedPrefs.edit().putBoolean(KEY_EDGE_TOUCH, enabled).apply();
             Utils.writeValue(FILE_EDGE, enabled ? "1" : "0");
             return true;
         } else if (preference == mUSB2FastChargeModeSwitch) {
             boolean enabled = (Boolean) newValue;
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-            sharedPrefs.edit().putBoolean(KEY_USB2_SWITCH, enabled).commit();
+            sharedPrefs.edit().putBoolean(KEY_USB2_SWITCH, enabled).apply();
             Utils.writeValue(FILE_FAST_CHARGE, enabled ? "1" : "0");
             return true;
         } else if (preference == mVibratorStrengthPreference) {
@@ -183,7 +183,7 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
                 return false;
             }
             SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-            sharedPrefs.edit().putInt(KEY_VIBSTRENGTH, value).commit();
+            sharedPrefs.edit().putInt(KEY_VIBSTRENGTH, value).apply();
             Utils.writeValue(FILE_LEVEL, String.valueOf(value));
             mVibrator.vibrate(testVibrationPattern, -1);
             return true;
@@ -194,7 +194,13 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
             case Constants.NOTIF_SLIDER_ACTION_TOP_KEY:
             case Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY:
             case Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY:
-                sendSliderBroadcast(key, (String) newValue);
+                String valStr = (String) newValue;
+                if (isDuplicateSliderAction(key, valStr)) {
+                    Toast.makeText(getContext(), "This action is already assigned to another position",
+                            Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                sendSliderBroadcast(key, valStr);
                 return true;
             default:
                 break;
@@ -237,6 +243,22 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         return val != null ? Integer.parseInt(val) : Integer.parseInt(fallback);
     }
 
+    private boolean isDuplicateSliderAction(String changedKey, String newValue) {
+        String[] keys = {
+                Constants.NOTIF_SLIDER_ACTION_TOP_KEY,
+                Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY,
+                Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY
+        };
+        for (String key : keys) {
+            if (key.equals(changedKey)) continue;
+            ListPreference p = (ListPreference) findPreference(key);
+            if (p != null && newValue.equals(p.getValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void enforceTouchPanelPolicy() {
         if (mGameModeSwitch == null || mEdgeTouchSwitch == null)
             return;
@@ -275,8 +297,7 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
                 mEdgeTouchSwitch.setChecked(false);
                 mEdgeTouchSwitch.setEnabled(false);
                 break;
-            default: // Normal or Manual: game_mode ON (user can toggle), edge_touch free
-                mGameModeSwitch.setChecked(true);
+            default: // Normal or Manual: user can toggle, do not override checked state
                 mGameModeSwitch.setEnabled(true);
                 mEdgeTouchSwitch.setEnabled(true);
                 break;
@@ -328,6 +349,7 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
     public static void sendUpdateBroadcast(Context context, int[] actions) {
         Intent intent = new Intent(Constants.ACTION_UPDATE_SLIDER_SETTINGS);
         intent.putExtra(Constants.EXTRA_SLIDER_ACTIONS, actions);
+        intent.putExtra("is_hardware", false); // UI change
         intent.setFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
         context.sendBroadcastAsUser(intent, UserHandle.CURRENT);
     }

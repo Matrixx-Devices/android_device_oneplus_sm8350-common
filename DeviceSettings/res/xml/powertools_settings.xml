@@ -43,7 +43,7 @@
             android:title="@string/powerprofile_select_mode_title"
             android:entries="@array/power_profile_modes"
             android:entryValues="@array/power_profile_mode_values"
-            android:defaultValue="0"
+            android:defaultValue="1"
             android:summary="%s" />
 
         <Preference
@@ -232,12 +232,6 @@
             android:entryValues="@array/io_scheduler_values"
             android:defaultValue="bfq"
             android:dependency="storage_enable" />
-
-        <SwitchPreferenceCompat
-            android:key="reset_on_boot"
-            android:title="@string/reset_on_boot_title"
-            android:summary="@string/reset_on_boot_summary"
-            android:defaultValue="false" />
 
     </PreferenceCategory>
 

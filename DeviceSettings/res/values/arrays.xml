@@ -24,16 +24,15 @@
         <item>DnD: Total Silence</item>
         <item>DnD: Priority Only</item>
         <item>DnD: Off (All Notifications)</item>
-        <item>Flashlight: Off</item>
-        <item>Flashlight: On</item>
-        <item>Flashlight: Blink</item>
+        <item>Torch: On</item>
+        <item>Torch: Blink</item>
         <item>Brightness: Auto</item>
         <item>Brightness: Maximum</item>
         <item>Brightness: Minimum</item>
-        <item>Screen Rotation: Auto</item>
-        <item>Screen Rotation: Portrait</item>
-        <item>Screen Rotation: Landscape (90°)</item>
-        <item>Screen Rotation: Landscape (270°)</item>
+        <item>Rotation: Auto</item>
+        <item>Rotation: Portrait</item>
+        <item>Rotation: Landscape (90°)</item>
+        <item>Rotation: Landscape (270°)</item>
     </string-array>
 
     <string-array name="slider_action_values" translatable="false">
@@ -43,7 +42,6 @@
         <item>10</item>
         <item>12</item>
         <item>13</item>
-        <item>20</item>
         <item>21</item>
         <item>22</item>
         <item>30</item>
@@ -365,28 +363,6 @@
         <item>powersave</item>
     </string-array>
 
-    <!-- Powertools: CPU Governors for Performance Mode -->
-    <string-array name="cpu_governor_performance_entries" translatable="false">
-        <item>schedutil</item>
-        <item>performance</item>
-    </string-array>
-    <string-array name="cpu_governor_performance_values" translatable="false">
-        <item>schedutil</item>
-        <item>performance</item>
-    </string-array>
-
-    <!-- Powertools: CPU Governors for Powersave Mode -->
-    <string-array name="cpu_governor_powersave_entries" translatable="false">
-        <item>schedutil</item>
-        <item>conservative</item>
-        <item>powersave</item>
-    </string-array>
-    <string-array name="cpu_governor_powersave_values" translatable="false">
-        <item>schedutil</item>
-        <item>conservative</item>
-        <item>powersave</item>
-    </string-array>
-
     <!-- Powertools: GPU Governors (Adreno 660 - all options) -->
     <string-array name="gpu_governor_entries" translatable="false">
         <item>Userspace</item>
@@ -403,33 +379,11 @@
         <item>msm-adreno-tz</item>
     </string-array>
 
-    <!-- Powertools: GPU Governors for Performance Mode -->
-    <string-array name="gpu_governor_performance_entries" translatable="false">
-        <item>MSM Adreno TZ</item>
-        <item>Simple Ondemand</item>
-        <item>Performance</item>
-    </string-array>
-    <string-array name="gpu_governor_performance_values" translatable="false">
-        <item>msm-adreno-tz</item>
-        <item>simple_ondemand</item>
-        <item>performance</item>
-    </string-array>
-
-    <!-- Powertools: GPU Governors for Powersave Mode -->
-    <string-array name="gpu_governor_powersave_entries" translatable="false">
-        <item>Userspace</item>
-        <item>Powersave</item>
-    </string-array>
-    <string-array name="gpu_governor_powersave_values" translatable="false">
-        <item>userspace</item>
-        <item>powersave</item>
-    </string-array>
-
     <!-- Powertools: Power Profile Mode -->
     <string-array name="power_profile_modes" translatable="false">
+        <item>Powersave</item>
         <item>Normal</item>
         <item>Performance</item>
-        <item>Powersave</item>
     </string-array>
     <string-array name="power_profile_mode_values" translatable="false">
         <item>0</item>
@@ -450,16 +404,6 @@
     <item>mq-deadline</item>
 </string-array>
 
-    <!-- Powertools: IO Schedulers for Performance Mode -->
-<string-array name="io_scheduler_performance_values" translatable="false">
-        <item>kyber</item>
-        <item>mq-deadline</item>
-</string-array>
 
-    <!-- Powertools: IO Schedulers for Powersave Mode -->
-<string-array name="io_scheduler_powersave_values" translatable="false">
-        <item>bfq</item>
-        <item>mq-deadline</item>
-</string-array>
 
 </resources>

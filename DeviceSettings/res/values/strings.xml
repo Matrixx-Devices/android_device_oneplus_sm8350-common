@@ -96,7 +96,7 @@
 
     <string name="mode_status_balanced">Default system behavior • Dynamic scaling • BFQ I/O scheduler • Standard thermal throttling</string>
     <string name="mode_status_performance">Maximum throughput • High minimum clocks • Kyber I/O scheduler • UI priority boosted • Background tasks aggressively cleared</string>
-    <string name="mode_status_battery_saver">Conservative scaling • A78 capped at 2.21 GHz • X1 capped at 2.59 GHz • GPU capped at 579 MHz • BFQ I/O • UFS scaling enabled • Background restricted</string>
+    <string name="mode_status_battery_saver">Schedutil + capped clocks • A78 max 2.21 GHz • X1 max 2.59 GHz • GPU max 579 MHz • BFQ I/O • UFS scaling enabled</string>
     <string name="mode_status_manual">Hardware limits unlocked • Custom frequencies, governors, and I/O schedulers enforced</string>
 
 
@@ -141,4 +141,10 @@
 
     <string name="io_scheduler_title">I/O Scheduler</string>
     <string name="io_scheduler_dialog_title">Select I/O Scheduler</string>
+
+    <string name="governor_restricted_powersave">%s is not available in PowerSave mode</string>
+    <string name="governor_restricted_performance">%s is not available in Performance mode</string>
+
+    <string name="widget_name">System Monitor</string>
+    <string name="widget_description">Live CPU, GPU, Memory, Battery \ Storage stats</string>
 </resources>

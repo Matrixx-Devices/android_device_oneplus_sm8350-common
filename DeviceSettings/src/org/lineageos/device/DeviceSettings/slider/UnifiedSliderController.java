@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * Copyright (C) 2018-2022 crDroid Android Project
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 package org.lineageos.device.DeviceSettings.slider;
 
@@ -37,6 +41,7 @@ public final class UnifiedSliderController extends SliderControllerBase {
     private static final String TAG = "UnifiedSliderController";
     private static final long BLINK_INTERVAL = 250L;
     private static final int CHANGE_DELAY = 100;
+    private static final long WAKELOCK_TIMEOUT = 60000; // 1 minute safety timeout
 
     private final AudioManager mAudioManager;
     private final NotificationManager mNotificationManager;
@@ -50,15 +55,12 @@ public final class UnifiedSliderController extends SliderControllerBase {
     private int mZenMode;
     private int mRingMode;
 
-    // Saved state for non-persistent actions (flashlight, brightness, rotation)
-    // so we can restore previous state when slider moves away from that position
     private int mSavedBrightnessMode = -1;
     private int mSavedBrightnessLevel = -1;
     private int mSavedRotationAuto = -1;
     private int mSavedRotationValue = -1;
 
-    // Track which action category is currently active for cleanup
-    private int mActiveActionCategory = -1; // 20=flash, 30=brightness, 40=rotation
+    private int mActiveActionCategory = -1; 
 
     private final Runnable mBlinkRunnable = new Runnable() {
         @Override
@@ -82,11 +84,6 @@ public final class UnifiedSliderController extends SliderControllerBase {
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
     }
 
-    /**
-     * Determine which category an action belongs to.
-     * Returns the tens digit: 10=notification, 20=flash, 30=brightness, 40=rotation,
-     * 50=ringer, 60=notif_ringer
-     */
     private int getActionCategory(int action) {
         if (action >= 10 && action < 20) return 10;
         if (action >= 20 && action < 30) return 20;
@@ -97,12 +94,6 @@ public final class UnifiedSliderController extends SliderControllerBase {
         return -1;
     }
 
-    /**
-     * Returns true if this action category is "persistent" — ringer, notification, DND
-     * modes don't need cleanup because they represent a system state the user expects
-     * to stay. Flashlight, brightness, rotation are "temporary" and should be restored
-     * when the slider leaves that position.
-     */
     private boolean isPersistentCategory(int category) {
         return category == 10 || category == 50 || category == 60;
     }
@@ -111,22 +102,21 @@ public final class UnifiedSliderController extends SliderControllerBase {
     protected int processAction(int action) {
         int newCategory = getActionCategory(action);
 
-        // Always turn off torch immediately when moving to any non-flashlight action.
-        // This is explicit and immediate — not dependent on category tracking state.
+        // Always turn off torch immediately when moving to any non-flashlight action
         if (newCategory != 20 && mTorchEnabled) {
             mBlinkHandler.removeCallbacksAndMessages(null);
             if (mWakeLock.isHeld()) mWakeLock.release();
             setTorchMode(false);
         }
 
-        // Restore previous state (brightness/rotation) when leaving that position
+        // Restore previous state (brightness/rotation) when leaving temporary position
         if (mActiveActionCategory != -1 && mActiveActionCategory != newCategory
                 && !isPersistentCategory(mActiveActionCategory)
-                && mActiveActionCategory != 20) { // torch already handled above
+                && mActiveActionCategory != 20) {
             restorePreviousState(mActiveActionCategory);
         }
 
-        // Save current state before applying non-persistent action
+        // Save state before applying temporary action
         if (!isPersistentCategory(newCategory) && newCategory != mActiveActionCategory) {
             saveCurrentState(newCategory);
         }
@@ -142,78 +132,45 @@ public final class UnifiedSliderController extends SliderControllerBase {
         return 0;
     }
 
-    /**
-     * Save current system state before modifying it with a non-persistent action.
-     */
     private void saveCurrentState(int category) {
         try {
             switch (category) {
-                case 30: // Brightness — save current brightness mode and level
-                    mSavedBrightnessMode = Settings.System.getIntForUser(
-                            mContext.getContentResolver(),
-                            Settings.System.SCREEN_BRIGHTNESS_MODE,
-                            Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC,
-                            UserHandle.USER_CURRENT);
-                    mSavedBrightnessLevel = Settings.System.getIntForUser(
-                            mContext.getContentResolver(),
-                            Settings.System.SCREEN_BRIGHTNESS,
-                            128,
-                            UserHandle.USER_CURRENT);
-                    Log.d(TAG, "Saved brightness state: mode=" + mSavedBrightnessMode
-                            + " level=" + mSavedBrightnessLevel);
+                case 30: 
+                    mSavedBrightnessMode = Settings.System.getIntForUser(mContext.getContentResolver(),
+                            Settings.System.SCREEN_BRIGHTNESS_MODE, 0, UserHandle.USER_CURRENT);
+                    mSavedBrightnessLevel = Settings.System.getIntForUser(mContext.getContentResolver(),
+                            Settings.System.SCREEN_BRIGHTNESS, 128, UserHandle.USER_CURRENT);
                     break;
-                case 40: // Rotation — save current rotation state
-                    mSavedRotationAuto = Settings.System.getIntForUser(
-                            mContext.getContentResolver(),
-                            Settings.System.ACCELEROMETER_ROTATION,
-                            0,
-                            UserHandle.USER_CURRENT);
-                    mSavedRotationValue = Settings.System.getIntForUser(
-                            mContext.getContentResolver(),
-                            Settings.System.USER_ROTATION,
-                            0,
-                            UserHandle.USER_CURRENT);
-                    Log.d(TAG, "Saved rotation state: auto=" + mSavedRotationAuto
-                            + " rotation=" + mSavedRotationValue);
+                case 40:
+                    mSavedRotationAuto = Settings.System.getIntForUser(mContext.getContentResolver(),
+                            Settings.System.ACCELEROMETER_ROTATION, 0, UserHandle.USER_CURRENT);
+                    mSavedRotationValue = Settings.System.getIntForUser(mContext.getContentResolver(),
+                            Settings.System.USER_ROTATION, 0, UserHandle.USER_CURRENT);
                     break;
-                // Flashlight has no system state to save — just needs to be turned off
             }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to save current state for category " + category, e);
+            Log.e(TAG, "Failed to save state", e);
         }
     }
 
-    /**
-     * Restore the previous system state when leaving a non-persistent action position.
-     */
     private void restorePreviousState(int category) {
         switch (category) {
-            case 20: // Flashlight — turn off torch
+            case 20:
                 mBlinkHandler.removeCallbacksAndMessages(null);
                 if (mWakeLock.isHeld()) mWakeLock.release();
                 setTorchMode(false);
-                Log.d(TAG, "Restored flashlight: OFF");
                 break;
-            case 30: // Brightness — restore saved brightness
+            case 30:
                 if (mSavedBrightnessMode != -1) {
                     writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE, mSavedBrightnessMode);
-                    if (mSavedBrightnessLevel != -1) {
-                        writeSettings(Settings.System.SCREEN_BRIGHTNESS, mSavedBrightnessLevel);
-                    }
-                    Log.d(TAG, "Restored brightness: mode=" + mSavedBrightnessMode
-                            + " level=" + mSavedBrightnessLevel);
-                    mSavedBrightnessMode = -1;
-                    mSavedBrightnessLevel = -1;
+                    if (mSavedBrightnessLevel != -1) writeSettings(Settings.System.SCREEN_BRIGHTNESS, mSavedBrightnessLevel);
+                    mSavedBrightnessMode = -1; mSavedBrightnessLevel = -1;
                 }
                 break;
-            case 40: // Rotation — restore saved rotation
+            case 40:
                 if (mSavedRotationAuto != -1) {
-                    writeRotation(mSavedRotationAuto == 1, mSavedRotationValue != -1
-                            ? mSavedRotationValue : 0);
-                    Log.d(TAG, "Restored rotation: auto=" + mSavedRotationAuto
-                            + " value=" + mSavedRotationValue);
-                    mSavedRotationAuto = -1;
-                    mSavedRotationValue = -1;
+                    writeRotation(mSavedRotationAuto == 1, mSavedRotationValue != -1 ? mSavedRotationValue : 0);
+                    mSavedRotationAuto = -1; mSavedRotationValue = -1;
                 }
                 break;
         }
@@ -221,12 +178,10 @@ public final class UnifiedSliderController extends SliderControllerBase {
 
     @Override
     public void reset() {
-        // Restore any non-persistent action before full reset
         if (mActiveActionCategory != -1 && !isPersistentCategory(mActiveActionCategory)) {
             restorePreviousState(mActiveActionCategory);
         }
         mActiveActionCategory = -1;
-
         mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
         mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
         setTorchMode(false);
@@ -272,7 +227,7 @@ public final class UnifiedSliderController extends SliderControllerBase {
             case 22:
                 mCameraId = getCameraId();
                 if (setTorchMode(true)) {
-                    mWakeLock.acquire();
+                    mWakeLock.acquire(WAKELOCK_TIMEOUT); 
                     mBlinkHandler.postDelayed(mBlinkRunnable, BLINK_INTERVAL);
                     return Constants.MODE_FLASHLIGHT_BLINK;
                 }
@@ -380,6 +335,7 @@ public final class UnifiedSliderController extends SliderControllerBase {
     }
 
     private boolean setTorchMode(boolean enabled) {
+        if (mCameraId == null) mCameraId = getCameraId();
         if (mCameraId == null) return false;
         try {
             mCameraManager.setTorchMode(mCameraId, enabled);

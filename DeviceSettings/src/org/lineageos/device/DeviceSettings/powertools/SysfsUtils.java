@@ -63,4 +63,13 @@ public final class SysfsUtils {
             return false;
         }
     }
+
+    public static void writeProperty(String key, String value) {
+        try {
+            Class<?> systemProperties = Class.forName("android.os.SystemProperties");
+            systemProperties.getMethod("set", String.class, String.class).invoke(null, key, value);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set property " + key, e);
+        }
+    }
 }

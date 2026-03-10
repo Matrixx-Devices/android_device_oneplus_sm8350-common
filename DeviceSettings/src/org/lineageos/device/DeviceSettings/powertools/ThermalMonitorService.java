@@ -17,6 +17,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Process;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -43,6 +44,13 @@ public class ThermalMonitorService extends Service {
     private static final String CPU_BIG_MAX = "/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq";
     private static final String CPU_PRIME_MAX = "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq";
     private static final String GPU_MAX_FREQ = "/sys/class/kgsl/kgsl-3d0/devfreq/max_freq";
+
+    // Governor and IO Scheduler Paths
+    private static final String CPU_LITTLE_GOV = "/sys/devices/system/cpu/cpufreq/policy0/scaling_governor";
+    private static final String CPU_BIG_GOV = "/sys/devices/system/cpu/cpufreq/policy4/scaling_governor";
+    private static final String CPU_PRIME_GOV = "/sys/devices/system/cpu/cpufreq/policy7/scaling_governor";
+    private static final String GPU_GOV = "/sys/class/kgsl/kgsl-3d0/devfreq/governor";
+    private static final String IO_SCHED = "/sys/block/sda/queue/scheduler";
 
     public static final int THRESH_LIGHT = 45;
     public static final int THRESH_MEDIUM = 49;
@@ -72,6 +80,8 @@ public class ThermalMonitorService extends Service {
     public static final int STATE_LIGHT = 1;
     public static final int STATE_MEDIUM = 2;
     public static final int STATE_HEAVY = 3;
+
+
 
     private static volatile int sCurrentState = STATE_NORMAL;
     private static volatile float sBatteryTempC = 0f;
@@ -110,7 +120,6 @@ public class ThermalMonitorService extends Service {
         Log.i(TAG, "Starting thermal service");
         setupNotificationChannel();
         
-        // Note: You may need to specify foregroundServiceType depending on your target SDK
         startForeground(NOTIF_ID, buildNotification("Thermal Monitor", "Starting..."));
         
         // Start a dedicated background thread for hardware polling
@@ -210,6 +219,14 @@ public class ThermalMonitorService extends Service {
         String gpu = GPU_NORMAL;
         String label = "no throttle";
 
+        // Use hardcoded Balance defaults as baseline — never read from persist props
+        // which may be stale from previous manual sessions
+        String littleGov = "schedutil";
+        String bigGov = "schedutil";
+        String primeGov = "schedutil";
+        String gpuGov = "simple_ondemand";
+        String ioSched = "bfq";
+
         switch (newState) {
             case STATE_HEAVY:
                 little = LITTLE_HEAVY;
@@ -217,6 +234,13 @@ public class ThermalMonitorService extends Service {
                 prime = PRIME_HEAVY;
                 gpu = GPU_HEAVY;
                 label = "HEAVY throttle (\u226555\u00b0C)";
+                
+                // Aggressively force everything to powersave
+                littleGov = "powersave";
+                bigGov = "powersave";
+                primeGov = "powersave";
+                gpuGov = "powersave";
+                ioSched = "bfq"; 
                 
                 SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-3");
                 SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-1");
@@ -237,6 +261,10 @@ public class ThermalMonitorService extends Service {
                 prime = PRIME_MEDIUM;
                 gpu = GPU_MEDIUM;
                 label = "MEDIUM throttle (\u226549\u00b0C)";
+                
+                // Switch heavy clusters to conservative to ramp up slower
+                bigGov = "conservative";
+                primeGov = "conservative";
                 
                 SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-6");
                 SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-3");
@@ -276,7 +304,7 @@ public class ThermalMonitorService extends Service {
                 // Values are already initialized to NORMAL defaults above
                 label = "no throttle";
                 
-                // Restoring typical normal behavior (adjust cpusets based on your specific device tree)
+                // Restoring typical normal behavior
                 SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-7");
                 SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-3");
                 SysfsUtils.writeValue("/sys/devices/system/cpu/cpu4/core_ctl/min_cpus", "2");
@@ -292,10 +320,18 @@ public class ThermalMonitorService extends Service {
                 break;
         }
 
+        // Apply Frequency Caps
         SysfsUtils.writeValue(CPU_LITTLE_MAX, little);
         SysfsUtils.writeValue(CPU_BIG_MAX, big);
         SysfsUtils.writeValue(CPU_PRIME_MAX, prime);
         SysfsUtils.writeValue(GPU_MAX_FREQ, gpu);
+
+        // Apply Governor and I/O Tweaks
+        SysfsUtils.writeValue(CPU_LITTLE_GOV, littleGov);
+        SysfsUtils.writeValue(CPU_BIG_GOV, bigGov);
+        SysfsUtils.writeValue(CPU_PRIME_GOV, primeGov);
+        SysfsUtils.writeValue(GPU_GOV, gpuGov);
+        SysfsUtils.writeValue(IO_SCHED, ioSched);
 
         Log.i(TAG, String.format("Auto Thermal: Battery=%.1f°C -> %s", sBatteryTempC, label));
 
@@ -307,11 +343,20 @@ public class ThermalMonitorService extends Service {
         // We use the worker thread to handle the reset so onDestroy returns instantly
         if (mHandler != null) {
             mHandler.post(() -> {
+                // Restore Frequency Caps
                 SysfsUtils.writeValue(CPU_LITTLE_MAX, LITTLE_NORMAL);
                 SysfsUtils.writeValue(CPU_BIG_MAX, BIG_NORMAL);
                 SysfsUtils.writeValue(CPU_PRIME_MAX, PRIME_NORMAL);
                 SysfsUtils.writeValue(GPU_MAX_FREQ, GPU_NORMAL);
+
+                // Use hardcoded Balance defaults — never read from stale persist props
+                SysfsUtils.writeValue(CPU_LITTLE_GOV, "schedutil");
+                SysfsUtils.writeValue(CPU_BIG_GOV, "schedutil");
+                SysfsUtils.writeValue(CPU_PRIME_GOV, "schedutil");
+                SysfsUtils.writeValue(GPU_GOV, "simple_ondemand");
+                SysfsUtils.writeValue(IO_SCHED, "bfq");
                 
+                // Restore Core Control / Cpuset Defaults
                 SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-7");
                 SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-3");
                 SysfsUtils.writeValue("/sys/devices/system/cpu/cpu4/core_ctl/min_cpus", "2");
@@ -319,6 +364,14 @@ public class ThermalMonitorService extends Service {
                 SysfsUtils.writeValue("/proc/sys/kernel/sched_upmigrate", "95 95");
                 SysfsUtils.writeValue("/proc/sys/kernel/sched_downmigrate", "85 85");
                 sCurrentState = STATE_NORMAL;
+
+                // Bounce sys.perf_mode_active to force init.rc to re-apply Balance profile
+                try {
+                    SystemProperties.set("sys.perf_mode_active", "-1");
+                    Thread.sleep(50);
+                    int savedMode = SystemProperties.getInt("persist.sys.perf_mode_saved", 1);
+                    SystemProperties.set("sys.perf_mode_active", String.valueOf(savedMode));
+                } catch (Exception ignored) {}
             });
         }
     }
