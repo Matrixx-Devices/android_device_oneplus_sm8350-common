@@ -31,6 +31,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <protected-broadcast android:name="org.lineageos.device.DeviceSettings.UPDATE_SLIDER_SETTINGS" />
     <protected-broadcast android:name="org.lineageos.device.DeviceSettings.UPDATE_SLIDER_POSITION" />
+    <protected-broadcast android:name="org.lineageos.device.DeviceSettings.WIDGET_TICK" />
 
     <application
         android:icon="@drawable/ic_logo"
