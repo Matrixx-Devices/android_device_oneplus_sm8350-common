@@ -22,38 +22,42 @@ import org.lineageos.device.DeviceSettings.R;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         implements Preference.OnPreferenceChangeListener {
 
+    // --- CONSTANTS ---
     private static final String KEY_AUTO_THERMAL = "auto_thermal_enable";
     private static final String KEY_AUTO_STATUS = "auto_thermal_status";
-    private SwitchPreferenceCompat mAutoThermalPref;
-    private Preference mAutoStatusPref;
-
     private static final String KEY_POWER_PROFILE_MODE = "power_profile_mode";
     private static final String KEY_MODE_STATUS = "mode_status_info";
-    private ListPreference mPowerProfilePref;
-    private Preference mModeStatusPref;
-    private PowerProfileUtil mPowerProfileUtil;
 
-    // STORAGE
     private static final String KEY_STORAGE_ENABLE = "storage_enable";
-    private SwitchPreferenceCompat mStorageEnablePref;
-    private ListPreference mIoSchedulerPref;
+    private static final String KEY_IO_SCHEDULER = PowerProfileUtil.KEY_IO_SCHEDULER;
     private static final String IO_DEFAULT_SCHED = "bfq";
 
-    // GPU
     private static final String KEY_GPU_ENABLE = "gpu_enable";
-    private SwitchPreferenceCompat mGpuEnablePref;
-    private ListPreference mGpuMinFreqPref, mGpuMaxFreqPref, mGpuGovernorPref;
+    private static final String KEY_GPU_MIN_FREQ = PowerProfileUtil.KEY_GPU_MIN_FREQ;
+    private static final String KEY_GPU_MAX_FREQ = PowerProfileUtil.KEY_GPU_MAX_FREQ;
+    private static final String KEY_GPU_GOVERNOR = PowerProfileUtil.KEY_GPU_GOVERNOR;
     private static final String GPU_DEFAULT_MIN = "315000000";
     private static final String GPU_DEFAULT_MAX = "840000000";
-    private static final String GPU_DEFAULT_GOV = "userspace";
+    private static final String GPU_DEFAULT_GOV = "msm-adreno-tz";
 
-    // CPU
     private static final String KEY_CPU_ENABLE = "cpu_enable";
-    private SwitchPreferenceCompat mCpuEnablePref;
+    private static final String KEY_CPU_LITTLE_MIN_FREQ = PowerProfileUtil.KEY_CPU_LITTLE_MIN_FREQ;
+    private static final String KEY_CPU_LITTLE_MAX_FREQ = PowerProfileUtil.KEY_CPU_LITTLE_MAX_FREQ;
+    private static final String KEY_CPU_LITTLE_GOVERNOR = PowerProfileUtil.KEY_CPU_LITTLE_GOVERNOR;
+    private static final String KEY_CPU_BIG_MIN_FREQ = PowerProfileUtil.KEY_CPU_BIG_MIN_FREQ;
+    private static final String KEY_CPU_BIG_MAX_FREQ = PowerProfileUtil.KEY_CPU_BIG_MAX_FREQ;
+    private static final String KEY_CPU_BIG_GOVERNOR = PowerProfileUtil.KEY_CPU_BIG_GOVERNOR;
+    private static final String KEY_CPU_PRIME_MIN_FREQ = PowerProfileUtil.KEY_CPU_PRIME_MIN_FREQ;
+    private static final String KEY_CPU_PRIME_MAX_FREQ = PowerProfileUtil.KEY_CPU_PRIME_MAX_FREQ;
+    private static final String KEY_CPU_PRIME_GOVERNOR = PowerProfileUtil.KEY_CPU_PRIME_GOVERNOR;
+
     private static final String CPU_LITTLE_DEFAULT_MIN = "300000";
     private static final String CPU_LITTLE_DEFAULT_MAX = "1804800";
     private static final String CPU_LITTLE_DEFAULT_GOV = "schedutil";
@@ -64,278 +68,457 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
     private static final String CPU_PRIME_DEFAULT_MAX = "2841600";
     private static final String CPU_PRIME_DEFAULT_GOV = "schedutil";
 
-    private static final String KEY_RESET_ON_BOOT = "reset_on_boot";
-    private static final String[] PERSIST_KEYS = PowerProfileUtil.PERSIST_KEYS;
-
-    private static final String KEY_CPU_LITTLE_MIN_FREQ = PowerProfileUtil.KEY_CPU_LITTLE_MIN_FREQ;
-    private static final String KEY_CPU_LITTLE_MAX_FREQ = PowerProfileUtil.KEY_CPU_LITTLE_MAX_FREQ;
-    private static final String KEY_CPU_LITTLE_GOVERNOR = PowerProfileUtil.KEY_CPU_LITTLE_GOVERNOR;
-    private static final String KEY_CPU_BIG_MIN_FREQ = PowerProfileUtil.KEY_CPU_BIG_MIN_FREQ;
-    private static final String KEY_CPU_BIG_MAX_FREQ = PowerProfileUtil.KEY_CPU_BIG_MAX_FREQ;
-    private static final String KEY_CPU_BIG_GOVERNOR = PowerProfileUtil.KEY_CPU_BIG_GOVERNOR;
-    private static final String KEY_CPU_PRIME_MIN_FREQ = PowerProfileUtil.KEY_CPU_PRIME_MIN_FREQ;
-    private static final String KEY_CPU_PRIME_MAX_FREQ = PowerProfileUtil.KEY_CPU_PRIME_MAX_FREQ;
-    private static final String KEY_CPU_PRIME_GOVERNOR = PowerProfileUtil.KEY_CPU_PRIME_GOVERNOR;
-    private static final String KEY_GPU_MIN_FREQ = PowerProfileUtil.KEY_GPU_MIN_FREQ;
-    private static final String KEY_GPU_MAX_FREQ = PowerProfileUtil.KEY_GPU_MAX_FREQ;
-    private static final String KEY_GPU_GOVERNOR = PowerProfileUtil.KEY_GPU_GOVERNOR;
-    private static final String KEY_IO_SCHEDULER = PowerProfileUtil.KEY_IO_SCHEDULER;
-
+    // --- UI COMPONENTS ---
+    private SwitchPreferenceCompat mAutoThermalPref, mStorageEnablePref, mGpuEnablePref, mCpuEnablePref;
+    private Preference mAutoStatusPref, mModeStatusPref;
+    private ListPreference mPowerProfilePref, mIoSchedulerPref;
+    private ListPreference mGpuMinFreqPref, mGpuMaxFreqPref, mGpuGovernorPref;
     private ListPreference mCpuLittleMinFreqPref, mCpuLittleMaxFreqPref, mCpuLittleGovernorPref;
     private ListPreference mCpuBigMinFreqPref, mCpuBigMaxFreqPref, mCpuBigGovernorPref;
     private ListPreference mCpuPrimeMinFreqPref, mCpuPrimeMaxFreqPref, mCpuPrimeGovernorPref;
 
-    private static Handler sMainHandler;
-    private List<Preference> mAllControlPrefs;
-    private List<Preference> mCpuGpuPrefs;
+    // --- STATE ---
+    private PowerProfileUtil mPowerProfileUtil;
+    private GameModeCoordinator mGameModeCoordinator;
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper());
+    private final List<Preference> mAllControlPrefs = new ArrayList<>();
+    private boolean mApplying = false;
+    
+    private final Runnable mThermalUpdater = new Runnable() {
+        @Override
+        public void run() {
+            updateThermalLiveData();
+        }
+    };
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.powertools_settings, rootKey);
-
-        mAutoThermalPref = findPreference(KEY_AUTO_THERMAL);
-        mAutoStatusPref = findPreference(KEY_AUTO_STATUS);
-        if (mAutoThermalPref != null)
-            mAutoThermalPref.setOnPreferenceChangeListener(this);
-
-        mPowerProfilePref = findPreference(KEY_POWER_PROFILE_MODE);
-        mModeStatusPref = findPreference(KEY_MODE_STATUS);
-        
         mPowerProfileUtil = new PowerProfileUtil(requireContext());
-        if (mPowerProfilePref != null)
-            mPowerProfilePref.setOnPreferenceChangeListener(this);
 
-        // STORAGE
-        mStorageEnablePref = findPreference(KEY_STORAGE_ENABLE);
-        mIoSchedulerPref = findPreference(KEY_IO_SCHEDULER);
-        if (mStorageEnablePref != null) mStorageEnablePref.setOnPreferenceChangeListener(this);
-        if (mIoSchedulerPref != null) mIoSchedulerPref.setOnPreferenceChangeListener(this);
-
-        // GPU
-        mGpuEnablePref = findPreference(KEY_GPU_ENABLE);
-        mGpuMinFreqPref = findPreference(KEY_GPU_MIN_FREQ);
-        mGpuMaxFreqPref = findPreference(KEY_GPU_MAX_FREQ);
-        mGpuGovernorPref = findPreference(KEY_GPU_GOVERNOR);
-        if (mGpuEnablePref != null) mGpuEnablePref.setOnPreferenceChangeListener(this);
-        if (mGpuMinFreqPref != null) mGpuMinFreqPref.setOnPreferenceChangeListener(this);
-        if (mGpuMaxFreqPref != null) mGpuMaxFreqPref.setOnPreferenceChangeListener(this);
-        if (mGpuGovernorPref != null) mGpuGovernorPref.setOnPreferenceChangeListener(this);
-
-        // CPU
-        mCpuEnablePref = findPreference(KEY_CPU_ENABLE);
-        if (mCpuEnablePref != null) mCpuEnablePref.setOnPreferenceChangeListener(this);
-
-        mCpuLittleMinFreqPref = findPreference(KEY_CPU_LITTLE_MIN_FREQ);
-        mCpuLittleMaxFreqPref = findPreference(KEY_CPU_LITTLE_MAX_FREQ);
-        mCpuLittleGovernorPref = findPreference(KEY_CPU_LITTLE_GOVERNOR);
-        mCpuBigMinFreqPref = findPreference(KEY_CPU_BIG_MIN_FREQ);
-        mCpuBigMaxFreqPref = findPreference(KEY_CPU_BIG_MAX_FREQ);
-        mCpuBigGovernorPref = findPreference(KEY_CPU_BIG_GOVERNOR);
-        mCpuPrimeMinFreqPref = findPreference(KEY_CPU_PRIME_MIN_FREQ);
-        mCpuPrimeMaxFreqPref = findPreference(KEY_CPU_PRIME_MAX_FREQ);
-        mCpuPrimeGovernorPref = findPreference(KEY_CPU_PRIME_GOVERNOR);
-
-        setChangeListeners(mCpuLittleMinFreqPref, mCpuLittleMaxFreqPref, mCpuLittleGovernorPref,
-                mCpuBigMinFreqPref, mCpuBigMaxFreqPref, mCpuBigGovernorPref,
-                mCpuPrimeMinFreqPref, mCpuPrimeMaxFreqPref, mCpuPrimeGovernorPref);
-
-        initializePreferenceLists();
-    }
-
-    private void initializePreferenceLists() {
-        mAllControlPrefs = new ArrayList<>();
-        mCpuGpuPrefs = new ArrayList<>();
+        // Bind and setup all preferences efficiently
+        mAutoThermalPref = bindPref(KEY_AUTO_THERMAL);
+        mAutoStatusPref = findPreference(KEY_AUTO_STATUS);
         
-        addIfFound(mAllControlPrefs, KEY_POWER_PROFILE_MODE, "power_profile_category",
-                "power_profile_footer", KEY_MODE_STATUS,
-                KEY_STORAGE_ENABLE, "storage_category", KEY_IO_SCHEDULER,
-                KEY_GPU_ENABLE, "gpu_freq_category", KEY_GPU_MIN_FREQ, KEY_GPU_MAX_FREQ, KEY_GPU_GOVERNOR,
-                KEY_CPU_ENABLE, "cpu_little_category", KEY_CPU_LITTLE_MIN_FREQ,
-                KEY_CPU_LITTLE_MAX_FREQ, KEY_CPU_LITTLE_GOVERNOR,
-                "cpu_big_category", KEY_CPU_BIG_MIN_FREQ, KEY_CPU_BIG_MAX_FREQ,
-                KEY_CPU_BIG_GOVERNOR, "cpu_prime_category", KEY_CPU_PRIME_MIN_FREQ,
-                KEY_CPU_PRIME_MAX_FREQ, KEY_CPU_PRIME_GOVERNOR);
+        mPowerProfilePref = bindPref(KEY_POWER_PROFILE_MODE);
+        mModeStatusPref = findPreference(KEY_MODE_STATUS);
 
-        addIfFound(mCpuGpuPrefs, KEY_IO_SCHEDULER, KEY_GPU_MIN_FREQ, KEY_GPU_MAX_FREQ, KEY_GPU_GOVERNOR,
-                KEY_CPU_LITTLE_MIN_FREQ, KEY_CPU_LITTLE_MAX_FREQ, KEY_CPU_LITTLE_GOVERNOR,
-                KEY_CPU_BIG_MIN_FREQ, KEY_CPU_BIG_MAX_FREQ, KEY_CPU_BIG_GOVERNOR,
-                KEY_CPU_PRIME_MIN_FREQ, KEY_CPU_PRIME_MAX_FREQ, KEY_CPU_PRIME_GOVERNOR);
+        mStorageEnablePref = bindPref(KEY_STORAGE_ENABLE);
+        mIoSchedulerPref = bindPref(KEY_IO_SCHEDULER);
+
+        mGpuEnablePref = bindPref(KEY_GPU_ENABLE);
+        mGpuMinFreqPref = bindPref(KEY_GPU_MIN_FREQ);
+        mGpuMaxFreqPref = bindPref(KEY_GPU_MAX_FREQ);
+        mGpuGovernorPref = bindPref(KEY_GPU_GOVERNOR);
+
+        mCpuEnablePref = bindPref(KEY_CPU_ENABLE);
+        mCpuLittleMinFreqPref = bindPref(KEY_CPU_LITTLE_MIN_FREQ);
+        mCpuLittleMaxFreqPref = bindPref(KEY_CPU_LITTLE_MAX_FREQ);
+        mCpuLittleGovernorPref = bindPref(KEY_CPU_LITTLE_GOVERNOR);
+        mCpuBigMinFreqPref = bindPref(KEY_CPU_BIG_MIN_FREQ);
+        mCpuBigMaxFreqPref = bindPref(KEY_CPU_BIG_MAX_FREQ);
+        mCpuBigGovernorPref = bindPref(KEY_CPU_BIG_GOVERNOR);
+        mCpuPrimeMinFreqPref = bindPref(KEY_CPU_PRIME_MIN_FREQ);
+        mCpuPrimeMaxFreqPref = bindPref(KEY_CPU_PRIME_MAX_FREQ);
+        mCpuPrimeGovernorPref = bindPref(KEY_CPU_PRIME_GOVERNOR);
+
+        initializeControlGroups();
     }
 
-    private void setChangeListeners(Preference... prefs) {
-        for (Preference p : prefs) {
-            if (p != null) p.setOnPreferenceChangeListener(this);
+    @SuppressWarnings("unchecked")
+    private <T extends Preference> T bindPref(String key) {
+        T pref = findPreference(key);
+        if (pref != null) {
+            pref.setOnPreferenceChangeListener(this);
         }
+        return pref;
     }
 
-    private void addIfFound(List<Preference> list, String... keys) {
-        for (String key : keys) {
+    private void initializeControlGroups() {
+        String[] controlKeys = {
+            KEY_POWER_PROFILE_MODE, "power_profile_category", "power_profile_footer", KEY_MODE_STATUS,
+            KEY_STORAGE_ENABLE, "storage_category", KEY_IO_SCHEDULER,
+            KEY_GPU_ENABLE, "gpu_freq_category", KEY_GPU_MIN_FREQ, KEY_GPU_MAX_FREQ, KEY_GPU_GOVERNOR,
+            KEY_CPU_ENABLE, "cpu_little_category", KEY_CPU_LITTLE_MIN_FREQ, KEY_CPU_LITTLE_MAX_FREQ, KEY_CPU_LITTLE_GOVERNOR,
+            "cpu_big_category", KEY_CPU_BIG_MIN_FREQ, KEY_CPU_BIG_MAX_FREQ, KEY_CPU_BIG_GOVERNOR,
+            "cpu_prime_category", KEY_CPU_PRIME_MIN_FREQ, KEY_CPU_PRIME_MAX_FREQ, KEY_CPU_PRIME_GOVERNOR
+        };
+
+        for (String key : controlKeys) {
             Preference p = findPreference(key);
-            if (p != null) list.add(p);
+            if (p != null) mAllControlPrefs.add(p);
         }
-    }
-
-    private static Handler getMainHandler() {
-        if (sMainHandler == null) {
-            sMainHandler = new Handler(Looper.getMainLooper());
-        }
-        return sMainHandler;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        if (mPowerProfilePref != null && mPowerProfileUtil != null) {
-            String activeMode = String.valueOf(mPowerProfileUtil.getCurrentMode());
-            if (!activeMode.equals(mPowerProfilePref.getValue())) {
-                mPowerProfilePref.setValue(activeMode);
-            }
+        if (mGameModeCoordinator == null) {
+            mGameModeCoordinator = new GameModeCoordinator(requireContext(), mPowerProfileUtil);
+            mGameModeCoordinator.setListener(new GameModeCoordinator.Listener() {
+                @Override
+                public void onGameSessionStarted() {
+                    mMainHandler.post(() -> lockForApply("Game session active — Performance boosted"));
+                }
+                @Override
+                public void onGameSessionEnded() {
+                    mMainHandler.postDelayed(() -> unlockAfterApply("Game ended · Profile restored"), 200);
+                }
+            });
         }
+        mGameModeCoordinator.register();
+        syncActiveModeUI();
         refreshUI();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        // Prevent memory leaks when leaving the fragment
-        if (sMainHandler != null) {
-            sMainHandler.removeCallbacksAndMessages(null);
+        if (mGameModeCoordinator != null) mGameModeCoordinator.unregister();
+        mMainHandler.removeCallbacksAndMessages(null);
+    }
+
+    // --- UI UPDATES ---
+
+    private void syncActiveModeUI() {
+        if (mPowerProfilePref == null || mPowerProfileUtil == null) return;
+        String activeMode = String.valueOf(mPowerProfileUtil.getCurrentMode());
+        if (!activeMode.equals(mPowerProfilePref.getValue())) {
+            mPowerProfilePref.setValue(activeMode);
         }
     }
 
     private void refreshUI() {
-        boolean autoOn = (mAutoThermalPref != null && mAutoThermalPref.isChecked());
+        boolean autoOn = isChecked(mAutoThermalPref);
+        
+        setControlsEnabled(mAllControlPrefs, !autoOn);
+        if (mAutoThermalPref != null) mAutoThermalPref.setEnabled(true); // Always keep master toggle responsive
+        
+        if (mAutoStatusPref != null) mAutoStatusPref.setVisible(autoOn);
+        if (mPowerProfilePref != null) mPowerProfilePref.setVisible(true);
+
         if (autoOn) {
-            setAllControlsEnabled(false);
             startTempUpdater();
-            if (mAutoStatusPref != null) mAutoStatusPref.setVisible(true);
             if (mPowerProfilePref != null) {
-                mPowerProfilePref.setVisible(true);
                 mPowerProfilePref.setEnabled(false);
                 mPowerProfilePref.setSummary("Auto");
             }
-            updateModeStatus(PowerProfileUtil.MODE_AUTO, true);
+            updateModeDisplays(PowerProfileUtil.MODE_AUTO, true);
         } else {
-            getMainHandler().removeCallbacksAndMessages(null);
-            setAllControlsEnabled(true);
-            if (mAutoStatusPref != null) mAutoStatusPref.setVisible(false);
-            if (mPowerProfilePref != null) mPowerProfilePref.setVisible(true);
+            mMainHandler.removeCallbacks(mThermalUpdater);
             refreshModeState();
         }
     }
 
     private void refreshModeState() {
-        boolean manual = isManualActive();
+        SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
+        syncAllListPrefsToData(prefs);
+        configurePresetModeUI();
+    }
+
+    // Manual mode UI loop removed. We rely strictly on configurePresetModeUI now.
+
+    private void configurePresetModeUI() {
+        boolean autoOn = isChecked(mAutoThermalPref);
+        int mode = getCurrentProfileMode();
+
+        if (mPowerProfilePref != null) {
+            mPowerProfilePref.setEnabled(!autoOn);
+            mPowerProfilePref.setSummary(autoOn ? "Auto" : mPowerProfilePref.getEntry());
+        }
+
+        updateModeDisplays(mode, autoOn);
+
+        boolean cpuEnabled = !autoOn && isChecked(mCpuEnablePref);
+        boolean gpuEnabled = !autoOn && isChecked(mGpuEnablePref);
+        boolean storageEnabled = !autoOn && isChecked(mStorageEnablePref);
+
+        safeSetEnabled(mCpuEnablePref, !autoOn);
+        safeSetEnabled(mGpuEnablePref, !autoOn);
+        safeSetEnabled(mStorageEnablePref, !autoOn);
+
+        updateGovernorDropdowns(mode);
+
+        safeSetEnabled(mCpuLittleMinFreqPref, cpuEnabled);
+        safeSetEnabled(mCpuLittleMaxFreqPref, cpuEnabled);
+        safeSetEnabled(mCpuLittleGovernorPref, cpuEnabled);
+        safeSetEnabled(mCpuBigMinFreqPref, cpuEnabled);
+        safeSetEnabled(mCpuBigMaxFreqPref, cpuEnabled);
+        safeSetEnabled(mCpuBigGovernorPref, cpuEnabled);
+        safeSetEnabled(mCpuPrimeMinFreqPref, cpuEnabled);
+        safeSetEnabled(mCpuPrimeMaxFreqPref, cpuEnabled);
+        safeSetEnabled(mCpuPrimeGovernorPref, cpuEnabled);
+
+        safeSetEnabled(mGpuMinFreqPref, gpuEnabled);
+        safeSetEnabled(mGpuMaxFreqPref, gpuEnabled);
+        safeSetEnabled(mGpuGovernorPref, gpuEnabled);
+
+        safeSetEnabled(mIoSchedulerPref, storageEnabled);
+
+        if (!cpuEnabled) resetHardwareCategoryToDefaults(KEY_CPU_ENABLE, mode);
+        if (!gpuEnabled) resetHardwareCategoryToDefaults(KEY_GPU_ENABLE, mode);
+        if (!storageEnabled) resetHardwareCategoryToDefaults(KEY_STORAGE_ENABLE, mode);
+    }
+
+
+    // --- THERMAL MONITORING ---
+
+    private void startTempUpdater() {
+        mMainHandler.removeCallbacks(mThermalUpdater);
+        mMainHandler.post(mThermalUpdater);
+    }
+
+    private void updateThermalLiveData() {
+        if (!isChecked(mAutoThermalPref)) return;
+        
+        float battC = ThermalMonitorService.getBatteryTempC();
+        int state = ThermalMonitorService.getCurrentState();
+        
+        String stateStr = (state == ThermalMonitorService.STATE_HEAVY) ? "Heavy throttle (\u2265 55\u00b0C)"
+                : (state == ThermalMonitorService.STATE_MEDIUM) ? "Medium throttle (\u2265 49\u00b0C)"
+                : (state == ThermalMonitorService.STATE_LIGHT) ? "Light throttle (\u2265 45\u00b0C)"
+                : "Normal (no throttle)";
+
+        if (mAutoStatusPref != null) mAutoStatusPref.setSummary("Monitoring");
+        if (mAutoThermalPref != null) {
+            mAutoThermalPref.setSummary(getString(R.string.auto_thermal_live_summary, String.format("%.1f\u00b0C", battC), stateStr));
+        }
+        
+        mMainHandler.postDelayed(mThermalUpdater, 2500);
+    }
+
+    // --- EVENT ROUTING ---
+
+    @Override
+    public boolean onPreferenceChange(Preference preference, Object newValue) {
+        String key = preference.getKey();
+        String newValStr = newValue.toString();
+
+        switch (key) {
+            case KEY_AUTO_THERMAL:
+                handleAutoThermalToggle((Boolean) newValue);
+                return true;
+
+            case KEY_POWER_PROFILE_MODE:
+                handleProfileModeChange(newValStr);
+                return true;
+
+            case KEY_STORAGE_ENABLE:
+            case KEY_GPU_ENABLE:
+            case KEY_CPU_ENABLE:
+                handleHardwareToggleChange(key, (Boolean) newValue);
+                return true;
+                
+            default:
+                return handleHardwareValueChange(preference, key, newValStr);
+        }
+    }
+
+    private void handleAutoThermalToggle(boolean enable) {
+        if (mApplying) return;
+        lockForApply("Applying Auto Thermal...");
+        Intent svc = new Intent(requireContext(), ThermalMonitorService.class);
+        mPowerProfileUtil.setMode(PowerProfileUtil.MODE_BALANCE);
+
+        if (enable) {
+            mPowerProfileUtil.syncUiToMode(PowerProfileUtil.MODE_BALANCE);
+            requireContext().startForegroundService(svc);
+        } else {
+            requireContext().stopService(svc);
+            mPowerProfileUtil.syncUiToMode(getCurrentProfileMode());
+        }
+        mMainHandler.postDelayed(() -> {
+            refreshModeState();
+            unlockAfterApply(enable ? "Auto Thermal enabled" : "Auto Thermal disabled");
+        }, 1500);
+    }
+
+
+    private void handleProfileModeChange(String newValue) {
+        if (mApplying) return;
+        lockForApply("Applying...");
+        int mode = Integer.parseInt(newValue);
+
+        if (mCpuEnablePref != null) mCpuEnablePref.setChecked(false);
+        if (mGpuEnablePref != null) mGpuEnablePref.setChecked(false);
+        if (mStorageEnablePref != null) mStorageEnablePref.setChecked(false);
+
+        mPowerProfileUtil.setMode(mode);
+
+        if (mPowerProfilePref != null) {
+            mPowerProfilePref.setValue(newValue);
+            mMainHandler.post(() -> mPowerProfilePref.setSummary(mPowerProfilePref.getEntry()));
+        }
+
+        mMainHandler.postDelayed(() -> {
+            refreshModeState();
+            String label = mPowerProfilePref != null ? mPowerProfilePref.getEntry().toString() : "Mode";
+            unlockAfterApply(label + " applied");
+        }, 1500);
+    }
+
+    private void handleHardwareToggleChange(String key, boolean enabled) {
+        int mode = getCurrentProfileMode();
+        
+        if (!enabled) {
+            // Turning OFF a toggle hard-resets that specific sub-category to default mode parameters
+            resetHardwareCategoryToDefaults(key, mode);
+            pushHardwareSettingsCategory(key);
+            showToast("Restored default parameters");
+        } else {
+            showToast("Freestyle tweaking unlocked");
+        }
+        
+        mMainHandler.postDelayed(this::refreshUI, 150);
+    }
+
+    private boolean handleHardwareValueChange(Preference preference, String key, String newValue) {
+        String restriction = checkRestrictions(preference, newValue);
+        if (restriction != null) {
+            showToast(restriction);
+            return false;
+        }
+
+        applyHardwareSetting(preference, key, newValue);
+        updateListPreferenceSafely(preference, newValue);
+
+        // Commit to SharedPreferences explicitly 
+        getPreferenceManager().getSharedPreferences().edit().putString(key, newValue).apply();
+        return false; // Handled manually
+    }
+
+    // --- HARDWARE APPLICATION ---
+
+    private void applyHardwareSetting(Preference preference, String key, String newValue) {
+        if (preference == mIoSchedulerPref) {
+            StorageUtils.setIoScheduler(newValue);
+        } else if (preference == mGpuMinFreqPref) {
+            GPUUtils.setGPUMinFrequency(newValue);
+        } else if (preference == mGpuMaxFreqPref) {
+            GPUUtils.setGPUMaxFrequency(newValue);
+        } else if (preference == mGpuGovernorPref) {
+            GPUUtils.setGPUGovernor(newValue);
+        } else if (isCpuLittlePref(preference)) {
+            CPUUtils.setCPULittleFreq(
+                resolveVal(key, KEY_CPU_LITTLE_MIN_FREQ, newValue, mCpuLittleMinFreqPref, CPU_LITTLE_DEFAULT_MIN),
+                resolveVal(key, KEY_CPU_LITTLE_MAX_FREQ, newValue, mCpuLittleMaxFreqPref, CPU_LITTLE_DEFAULT_MAX),
+                resolveVal(key, KEY_CPU_LITTLE_GOVERNOR, newValue, mCpuLittleGovernorPref, CPU_LITTLE_DEFAULT_GOV)
+            );
+        } else if (isCpuBigPref(preference)) {
+            CPUUtils.setCPUBigFreq(
+                resolveVal(key, KEY_CPU_BIG_MIN_FREQ, newValue, mCpuBigMinFreqPref, CPU_BIG_DEFAULT_MIN),
+                resolveVal(key, KEY_CPU_BIG_MAX_FREQ, newValue, mCpuBigMaxFreqPref, CPU_BIG_DEFAULT_MAX),
+                resolveVal(key, KEY_CPU_BIG_GOVERNOR, newValue, mCpuBigGovernorPref, CPU_BIG_DEFAULT_GOV)
+            );
+        } else if (isCpuPrimePref(preference)) {
+            CPUUtils.setCPUPrimeFreq(
+                resolveVal(key, KEY_CPU_PRIME_MIN_FREQ, newValue, mCpuPrimeMinFreqPref, CPU_PRIME_DEFAULT_MIN),
+                resolveVal(key, KEY_CPU_PRIME_MAX_FREQ, newValue, mCpuPrimeMaxFreqPref, CPU_PRIME_DEFAULT_MAX),
+                resolveVal(key, KEY_CPU_PRIME_GOVERNOR, newValue, mCpuPrimeGovernorPref, CPU_PRIME_DEFAULT_GOV)
+            );
+        }
+    }
+
+    private void pushHardwareSettingsCategory(String categoryKey) {
         SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
         
-        // Sync ListPreference UI to display current SharedPreferences 
-        // (which are updated by init/PowerProfileUtil for preset modes)
-        syncListPrefToData(mIoSchedulerPref, prefs, PowerProfileUtil.KEY_IO_SCHEDULER);
-        syncListPrefToData(mGpuMinFreqPref, prefs, PowerProfileUtil.KEY_GPU_MIN_FREQ);
-        syncListPrefToData(mGpuMaxFreqPref, prefs, PowerProfileUtil.KEY_GPU_MAX_FREQ);
-        syncListPrefToData(mGpuGovernorPref, prefs, PowerProfileUtil.KEY_GPU_GOVERNOR);
-        syncListPrefToData(mCpuLittleMinFreqPref, prefs, PowerProfileUtil.KEY_CPU_LITTLE_MIN_FREQ);
-        syncListPrefToData(mCpuLittleMaxFreqPref, prefs, PowerProfileUtil.KEY_CPU_LITTLE_MAX_FREQ);
-        syncListPrefToData(mCpuLittleGovernorPref, prefs, PowerProfileUtil.KEY_CPU_LITTLE_GOVERNOR);
-        syncListPrefToData(mCpuBigMinFreqPref, prefs, PowerProfileUtil.KEY_CPU_BIG_MIN_FREQ);
-        syncListPrefToData(mCpuBigMaxFreqPref, prefs, PowerProfileUtil.KEY_CPU_BIG_MAX_FREQ);
-        syncListPrefToData(mCpuBigGovernorPref, prefs, PowerProfileUtil.KEY_CPU_BIG_GOVERNOR);
-        syncListPrefToData(mCpuPrimeMinFreqPref, prefs, PowerProfileUtil.KEY_CPU_PRIME_MIN_FREQ);
-        syncListPrefToData(mCpuPrimeMaxFreqPref, prefs, PowerProfileUtil.KEY_CPU_PRIME_MAX_FREQ);
-        syncListPrefToData(mCpuPrimeGovernorPref, prefs, PowerProfileUtil.KEY_CPU_PRIME_GOVERNOR);
-
-        if (manual) {
-            if (mPowerProfilePref != null) {
-                mPowerProfilePref.setSummary(getString(R.string.powerprofile_mode_manual));
-                mPowerProfilePref.setEnabled(false);
-            }
-            updateModeStatus(PowerProfileUtil.MODE_MANUAL, false);
-            
-            boolean storageOn = (mStorageEnablePref != null && mStorageEnablePref.isChecked());
-            if (mIoSchedulerPref != null) mIoSchedulerPref.setEnabled(storageOn);
-            
-            boolean gpuOn = (mGpuEnablePref != null && mGpuEnablePref.isChecked());
-            if (mGpuMinFreqPref != null) mGpuMinFreqPref.setEnabled(gpuOn);
-            if (mGpuMaxFreqPref != null) mGpuMaxFreqPref.setEnabled(gpuOn);
-            if (mGpuGovernorPref != null) mGpuGovernorPref.setEnabled(gpuOn);
-            
-            boolean cpuOn = (mCpuEnablePref != null && mCpuEnablePref.isChecked());
-            updateCpuSubPrefsEnabled(cpuOn);
-            
-            // Re-populate governor lists to show ALL options when in manual mode
-            updateGovernorLists(PowerProfileUtil.MODE_BALANCE);
-        } else {
-            // Preset modes driven by init.rc
-            boolean autoOn = (mAutoThermalPref != null && mAutoThermalPref.isChecked());
-            int mode = PowerProfileUtil.MODE_BALANCE;
-            String val = (mPowerProfilePref != null) ? mPowerProfilePref.getValue() : "1";
-            try { mode = Integer.parseInt(val); } catch (NumberFormatException ignored) { }
-
-            if (mPowerProfilePref != null) {
-                if (autoOn) {
-                    mPowerProfilePref.setEnabled(false);
-                    mPowerProfilePref.setSummary("Auto");
-                } else {
-                    mPowerProfilePref.setEnabled(true);
-                    CharSequence entry = mPowerProfilePref.getEntry();
-                    mPowerProfilePref.setSummary(entry != null ? entry : "");
-                }
-            }
-
-            updateModeStatus(mode, autoOn);
-            
-            // Allow master toggles to be turned on
-            if (mStorageEnablePref != null) mStorageEnablePref.setEnabled(true);
-            if (mGpuEnablePref != null) mGpuEnablePref.setEnabled(true);
-            if (mCpuEnablePref != null) mCpuEnablePref.setEnabled(true);
-            
-            // Dynamically swap the available dropdown items based on the active mode
-            updateGovernorLists(mode);
-
-            // Lock ONLY the frequencies so they require Manual Mode
-            if (mGpuMinFreqPref != null) mGpuMinFreqPref.setEnabled(false);
-            if (mGpuMaxFreqPref != null) mGpuMaxFreqPref.setEnabled(false);
-            if (mCpuLittleMinFreqPref != null) mCpuLittleMinFreqPref.setEnabled(false);
-            if (mCpuLittleMaxFreqPref != null) mCpuLittleMaxFreqPref.setEnabled(false);
-            if (mCpuBigMinFreqPref != null) mCpuBigMinFreqPref.setEnabled(false);
-            if (mCpuBigMaxFreqPref != null) mCpuBigMaxFreqPref.setEnabled(false);
-            if (mCpuPrimeMinFreqPref != null) mCpuPrimeMinFreqPref.setEnabled(false);
-            if (mCpuPrimeMaxFreqPref != null) mCpuPrimeMaxFreqPref.setEnabled(false);
-
-            // Keep the Governors unlocked so you can tweak them dynamically
-            if (mGpuGovernorPref != null) mGpuGovernorPref.setEnabled(true);
-            if (mCpuLittleGovernorPref != null) mCpuLittleGovernorPref.setEnabled(true);
-            if (mCpuBigGovernorPref != null) mCpuBigGovernorPref.setEnabled(true);
-            if (mCpuPrimeGovernorPref != null) mCpuPrimeGovernorPref.setEnabled(true);
-            if (mIoSchedulerPref != null) mIoSchedulerPref.setEnabled(true);
+        switch (categoryKey) {
+            case KEY_STORAGE_ENABLE:
+                StorageUtils.setIoScheduler(prefs.getString(KEY_IO_SCHEDULER, IO_DEFAULT_SCHED));
+                break;
+            case KEY_GPU_ENABLE:
+                GPUUtils.setGPUMinFrequency(prefs.getString(KEY_GPU_MIN_FREQ, GPU_DEFAULT_MIN));
+                GPUUtils.setGPUMaxFrequency(prefs.getString(KEY_GPU_MAX_FREQ, GPU_DEFAULT_MAX));
+                GPUUtils.setGPUGovernor(prefs.getString(KEY_GPU_GOVERNOR, GPU_DEFAULT_GOV));
+                break;
+            case KEY_CPU_ENABLE:
+                CPUUtils.setCPULittleFreq(
+                    prefs.getString(KEY_CPU_LITTLE_MIN_FREQ, CPU_LITTLE_DEFAULT_MIN),
+                    prefs.getString(KEY_CPU_LITTLE_MAX_FREQ, CPU_LITTLE_DEFAULT_MAX),
+                    prefs.getString(KEY_CPU_LITTLE_GOVERNOR, CPU_LITTLE_DEFAULT_GOV)
+                );
+                CPUUtils.setCPUBigFreq(
+                    prefs.getString(KEY_CPU_BIG_MIN_FREQ, CPU_BIG_DEFAULT_MIN),
+                    prefs.getString(KEY_CPU_BIG_MAX_FREQ, CPU_BIG_DEFAULT_MAX),
+                    prefs.getString(KEY_CPU_BIG_GOVERNOR, CPU_BIG_DEFAULT_GOV)
+                );
+                CPUUtils.setCPUPrimeFreq(
+                    prefs.getString(KEY_CPU_PRIME_MIN_FREQ, CPU_PRIME_DEFAULT_MIN),
+                    prefs.getString(KEY_CPU_PRIME_MAX_FREQ, CPU_PRIME_DEFAULT_MAX),
+                    prefs.getString(KEY_CPU_PRIME_GOVERNOR, CPU_PRIME_DEFAULT_GOV)
+                );
+                break;
         }
     }
 
-    private void syncListPrefToData(ListPreference pref, SharedPreferences prefs, String key) {
-        if (pref != null) {
-            String val = prefs.getString(key, "");
-            if (!val.isEmpty()) {
-                pref.setValue(val);
-                CharSequence entry = pref.getEntry();
-                pref.setSummary(entry != null ? entry : val);
+    private void resetHardwareCategoryToDefaults(String categoryKey, int targetMode) {
+        SharedPreferences.Editor editor = getPreferenceManager().getSharedPreferences().edit();
+        List<String> keysToReset = new ArrayList<>();
+
+        switch (categoryKey) {
+            case KEY_STORAGE_ENABLE:
+                keysToReset.add(KEY_IO_SCHEDULER);
+                break;
+            case KEY_GPU_ENABLE:
+                keysToReset.addAll(Arrays.asList(KEY_GPU_MIN_FREQ, KEY_GPU_MAX_FREQ, KEY_GPU_GOVERNOR));
+                break;
+            case KEY_CPU_ENABLE:
+                keysToReset.addAll(Arrays.asList(
+                    KEY_CPU_LITTLE_MIN_FREQ, KEY_CPU_LITTLE_MAX_FREQ, KEY_CPU_LITTLE_GOVERNOR,
+                    KEY_CPU_BIG_MIN_FREQ, KEY_CPU_BIG_MAX_FREQ, KEY_CPU_BIG_GOVERNOR,
+                    KEY_CPU_PRIME_MIN_FREQ, KEY_CPU_PRIME_MAX_FREQ, KEY_CPU_PRIME_GOVERNOR
+                ));
+                break;
+        }
+
+        for (String baseKey : keysToReset) {
+            String defaultVal = mPowerProfileUtil.getStockValueForMode(targetMode, baseKey);
+            editor.putString(baseKey, defaultVal);
+
+            Preference p = findPreference(baseKey);
+            if (p instanceof ListPreference) {
+                ListPreference lp = (ListPreference) p;
+                lp.setValue(defaultVal);
+                CharSequence entry = lp.getEntry();
+                lp.setSummary(entry != null ? entry : defaultVal);
             }
         }
+        editor.apply();
     }
 
-    private void updateModeStatus(int mode, boolean isAuto) {
+    // --- HELPERS & UTILITIES ---
+
+    private void lockForApply(String status) {
+        mApplying = true;
+        setControlsEnabled(mAllControlPrefs, false);
+        if (mModeStatusPref != null) mModeStatusPref.setSummary(status);
+    }
+
+    private void unlockAfterApply(String toast) {
+        mApplying = false;
+        refreshUI();
+        showToast(toast);
+    }
+
+    private String resolveVal(String targetKey, String matchKey, String newValue, ListPreference pref, String fallback) {
+        if (targetKey.equals(matchKey)) return newValue;
+        return (pref != null && pref.getValue() != null) ? pref.getValue() : fallback;
+    }
+
+    private void updateModeDisplays(int mode, boolean isAuto) {
         if (mModeStatusPref != null) {
-            if (isAuto) {
-                mModeStatusPref.setSummary("Dynamically throttling based on device temperature");
-            } else {
-                switch (mode) {
-                    case PowerProfileUtil.MODE_PERFORMANCE: mModeStatusPref.setSummary(R.string.mode_status_performance); break;
-                    case PowerProfileUtil.MODE_BATTERY_SAVER: mModeStatusPref.setSummary(R.string.mode_status_battery_saver); break;
-                    case PowerProfileUtil.MODE_MANUAL: mModeStatusPref.setSummary(R.string.mode_status_manual); break;
-                    default: mModeStatusPref.setSummary(R.string.mode_status_balanced); break;
-                }
-            }
+            mModeStatusPref.setSummary(isAuto ? "Dynamically throttling based on device temperature" 
+                                              : getString(getStatusSummaryForMode(mode)));
         }
         updateModeCard(mode, isAuto);
+    }
+
+    private int getStatusSummaryForMode(int mode) {
+        switch (mode) {
+            case PowerProfileUtil.MODE_PERFORMANCE: return R.string.mode_status_performance;
+            case PowerProfileUtil.MODE_BATTERY_SAVER: return R.string.mode_status_battery_saver;
+            default: return R.string.mode_status_balanced;
+        }
     }
 
     private void updateModeCard(int mode, boolean isAuto) {
@@ -344,7 +527,7 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
 
         if (isAuto) {
             card.setTitle("Auto Thermal");
-            card.setSummary("Adaptive throttling based on temperature • Manages all CPU/GPU via base Normal mode");
+            card.setSummary("Adaptive throttling based on temperature \u2022 Manages all CPU/GPU via base Normal mode");
             card.setIcon(R.drawable.ic_thermal_balance); 
             return;
         }
@@ -352,284 +535,97 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         switch (mode) {
             case PowerProfileUtil.MODE_PERFORMANCE:
                 card.setTitle("Performance");
-                card.setSummary("Max CPU/GPU • Kyber I/O • Background apps cleared");
+                card.setSummary("Max CPU/GPU \u2022 Kyber I/O \u2022 Background apps cleared");
                 card.setIcon(R.drawable.ic_thermal_performance);
                 break;
             case PowerProfileUtil.MODE_BATTERY_SAVER:
                 card.setTitle("Powersave");
-                card.setSummary("Conservative scaling • BFQ I/O • Background restricted");
+                card.setSummary("Conservative scaling \u2022 BFQ I/O \u2022 Background restricted");
                 card.setIcon(R.drawable.ic_thermal_battery_saver);
-                break;
-            case PowerProfileUtil.MODE_MANUAL:
-                card.setTitle("Manual");
-                card.setSummary("Custom frequencies & governors • Full control over settings");
-                card.setIcon(R.drawable.ic_cpu_chip);
                 break;
             default:
                 card.setTitle("Normal");
-                card.setSummary("Balanced mode • Dynamic CPU scaling • Thermal throttle enabled");
+                card.setSummary("Balanced mode \u2022 Dynamic CPU scaling \u2022 Thermal throttle enabled");
                 card.setIcon(R.drawable.ic_thermal_balance);
                 break;
         }
     }
 
-    private void setAllControlsEnabled(boolean enabled) {
-        for (Preference p : mAllControlPrefs) p.setEnabled(enabled);
-        if (!enabled && mAutoThermalPref != null) mAutoThermalPref.setEnabled(true);
-    }
+    private String checkRestrictions(Preference preference, String value) {
+        int mode = getCurrentProfileMode();
+        boolean isCpuGov = isCpuGovernorPref(preference);
+        boolean isGpuGov = (preference == mGpuGovernorPref);
+        boolean isIoSched = (preference == mIoSchedulerPref);
 
-    private void startTempUpdater() {
-        getMainHandler().removeCallbacksAndMessages(null);
-        Runnable updater = new Runnable() {
-            @Override
-            public void run() {
-                if (mAutoThermalPref == null || !mAutoThermalPref.isChecked()) return;
-                float battC = ThermalMonitorService.getBatteryTempC();
-                int state = ThermalMonitorService.getCurrentState();
-                String stateStr = (state == ThermalMonitorService.STATE_HEAVY) ? "Heavy throttle (\u2265 55\u00b0C)"
-                        : (state == ThermalMonitorService.STATE_MEDIUM) ? "Medium throttle (\u2265 49\u00b0C)"
-                        : (state == ThermalMonitorService.STATE_LIGHT) ? "Light throttle (\u2265 45\u00b0C)"
-                        : "Normal (no throttle)";
-
-                if (mAutoStatusPref != null) mAutoStatusPref.setSummary("Monitoring");
-                if (mAutoThermalPref != null) {
-                    mAutoThermalPref.setSummary(getString(R.string.auto_thermal_live_summary, String.format("%.1f\u00b0C", battC), stateStr));
+        if (preference instanceof ListPreference && preference.getKey() != null && preference.getKey().contains("_freq")) {
+            try {
+                long freqVal = Long.parseLong(value);
+                if (mode == PowerProfileUtil.MODE_BATTERY_SAVER && preference.getKey().contains("max_freq")) {
+                    long defaultMax = Long.parseLong(mPowerProfileUtil.getStockValueForMode(mode, preference.getKey()));
+                    if (freqVal > defaultMax) return "Mode restriction: Cannot exceed Powersave max frequency";
+                } else if (mode == PowerProfileUtil.MODE_PERFORMANCE && preference.getKey().contains("min_freq")) {
+                    long defaultMin = Long.parseLong(mPowerProfileUtil.getStockValueForMode(mode, preference.getKey()));
+                    if (freqVal < defaultMin) return "Mode restriction: Cannot go below Performance minimum";
                 }
-                getMainHandler().postDelayed(this, 2500);
-            }
-        };
-        getMainHandler().post(updater);
-    }
-
-    @Override
-    public boolean onPreferenceChange(Preference preference, Object newValue) {
-        String key = preference.getKey();
-
-        if (KEY_AUTO_THERMAL.equals(key)) {
-            boolean enable = (Boolean) newValue;
-            Intent svc = new Intent(requireContext(), ThermalMonitorService.class);
-            if (enable) {
-                mPowerProfileUtil.setMode(PowerProfileUtil.MODE_BALANCE);
-                requireContext().startForegroundService(svc);
-                showToast("Auto Thermal Management enabled");
-            } else {
-                requireContext().stopService(svc);
-                // Re-trigger Balance mode to ensure init.rc restores governors properly
-                mPowerProfileUtil.setMode(PowerProfileUtil.MODE_BALANCE);
-                showToast("Auto Thermal disabled");
-            }
-            getMainHandler().postDelayed(this::refreshUI, 150);
-            return true;
+            } catch (NumberFormatException ignored) {}
         }
 
-        if (KEY_POWER_PROFILE_MODE.equals(key)) {
-            int mode = Integer.parseInt((String) newValue);
-            mPowerProfileUtil.setMode(mode); // Set prop to trigger init
+        if (mode == PowerProfileUtil.MODE_BATTERY_SAVER) {
+            if (isCpuGov && "performance".equals(value)) return getString(R.string.governor_restricted_powersave, "Performance");
+            if (isGpuGov && ("performance".equals(value) || "msm-adreno-tz".equals(value))) {
+                return getString(R.string.governor_restricted_powersave, "msm-adreno-tz".equals(value) ? "MSM Adreno TZ" : "Performance");
+            }
+            if (isIoSched && "kyber".equals(value)) return getString(R.string.governor_restricted_powersave, "Kyber");
             
-            if (mPowerProfilePref != null) {
-                mPowerProfilePref.setValue((String) newValue);
-                getMainHandler().post(() -> {
-                    mPowerProfilePref.setSummary(mPowerProfilePref.getEntry());
-                    showToast(mPowerProfilePref.getEntry() + " mode applied");
-                    refreshUI(); // Refreshes UI to show the synced init values
-                });
+        } else if (mode == PowerProfileUtil.MODE_PERFORMANCE) {
+            if (isCpuGov && ("conservative".equals(value) || "powersave".equals(value))) {
+                return getString(R.string.governor_restricted_performance, "conservative".equals(value) ? "Conservative" : "Powersave");
             }
-            return true;
-        }
-
-        if (KEY_STORAGE_ENABLE.equals(key) || KEY_GPU_ENABLE.equals(key) || KEY_CPU_ENABLE.equals(key)) {
-            boolean enabled = (Boolean) newValue;
-            if (!enabled) {
-                showToast("Restoring profile defaults...");
-                checkPresetModeFallback();
-            } else {
-                mPowerProfileUtil.setMode(PowerProfileUtil.MODE_MANUAL);
-                // 1. Wipe old manual saves and reset sliders to default Balance values
-                resetManualModeToDefaults();
-                // 2. Instantly push those fresh defaults to the hardware
-                pushManualSettingsToHardware();
-                
-                showToast("Manual control enabled");
+            if (isGpuGov && ("userspace".equals(value) || "powersave".equals(value))) {
+                return getString(R.string.governor_restricted_performance, "userspace".equals(value) ? "Userspace" : "Powersave");
             }
-            getMainHandler().postDelayed(this::refreshModeState, 100);
-            return true;
+            if (isIoSched && "bfq".equals(value)) return getString(R.string.governor_restricted_performance, "BFQ");
         }
+        return null;
+    }
 
-        // Check governor/scheduler restrictions in preset modes
-        if (!isManualActive()) {
-            int currentMode = PowerProfileUtil.MODE_BALANCE;
-            String modeVal = (mPowerProfilePref != null) ? mPowerProfilePref.getValue() : "1";
-            try { currentMode = Integer.parseInt(modeVal); } catch (NumberFormatException ignored) { }
+    private void syncAllListPrefsToData(SharedPreferences prefs) {
+        syncListPrefToData(mIoSchedulerPref, prefs, KEY_IO_SCHEDULER);
+        syncListPrefToData(mGpuMinFreqPref, prefs, KEY_GPU_MIN_FREQ);
+        syncListPrefToData(mGpuMaxFreqPref, prefs, KEY_GPU_MAX_FREQ);
+        syncListPrefToData(mGpuGovernorPref, prefs, KEY_GPU_GOVERNOR);
+        syncListPrefToData(mCpuLittleMinFreqPref, prefs, KEY_CPU_LITTLE_MIN_FREQ);
+        syncListPrefToData(mCpuLittleMaxFreqPref, prefs, KEY_CPU_LITTLE_MAX_FREQ);
+        syncListPrefToData(mCpuLittleGovernorPref, prefs, KEY_CPU_LITTLE_GOVERNOR);
+        syncListPrefToData(mCpuBigMinFreqPref, prefs, KEY_CPU_BIG_MIN_FREQ);
+        syncListPrefToData(mCpuBigMaxFreqPref, prefs, KEY_CPU_BIG_MAX_FREQ);
+        syncListPrefToData(mCpuBigGovernorPref, prefs, KEY_CPU_BIG_GOVERNOR);
+        syncListPrefToData(mCpuPrimeMinFreqPref, prefs, KEY_CPU_PRIME_MIN_FREQ);
+        syncListPrefToData(mCpuPrimeMaxFreqPref, prefs, KEY_CPU_PRIME_MAX_FREQ);
+        syncListPrefToData(mCpuPrimeGovernorPref, prefs, KEY_CPU_PRIME_GOVERNOR);
+    }
 
-            boolean isCpuGov = (preference == mCpuLittleGovernorPref || preference == mCpuBigGovernorPref || preference == mCpuPrimeGovernorPref);
-            boolean isGpuGov = (preference == mGpuGovernorPref);
-            boolean isIoSched = (preference == mIoSchedulerPref);
-
-            if (isCpuGov || isGpuGov || isIoSched) {
-                String restriction = getRestrictionMessage(currentMode, newValue.toString(), isCpuGov, isGpuGov, isIoSched);
-                if (restriction != null) {
-                    showToast(restriction);
-                    return false;
-                }
-            }
+    private void syncListPrefToData(ListPreference pref, SharedPreferences prefs, String key) {
+        if (pref == null) return;
+        String val = prefs.getString(key, "");
+        if (!val.isEmpty()) {
+            pref.setValue(val);
+            CharSequence entry = pref.getEntry();
+            pref.setSummary(entry != null ? entry : val);
         }
+    }
 
-        // Apply specific settings to hardware using Utils (Works when manual is active or tweaking Governors in preset modes)
-        if (preference == mIoSchedulerPref) {
-            StorageUtils.setIoScheduler(newValue.toString());
-        } else if (preference == mGpuMinFreqPref) {
-            GPUUtils.setGPUMinFrequency(newValue.toString());
-        } else if (preference == mGpuMaxFreqPref) {
-            GPUUtils.setGPUMaxFrequency(newValue.toString());
-        } else if (preference == mGpuGovernorPref) {
-            GPUUtils.setGPUGovernor(newValue.toString());
-        } else if (preference == mCpuLittleMinFreqPref || preference == mCpuLittleMaxFreqPref || preference == mCpuLittleGovernorPref) {
-            CPUUtils.setCPULittleFreq(
-                preference == mCpuLittleMinFreqPref ? newValue.toString() : (mCpuLittleMinFreqPref != null ? mCpuLittleMinFreqPref.getValue() : CPU_LITTLE_DEFAULT_MIN),
-                preference == mCpuLittleMaxFreqPref ? newValue.toString() : (mCpuLittleMaxFreqPref != null ? mCpuLittleMaxFreqPref.getValue() : CPU_LITTLE_DEFAULT_MAX),
-                preference == mCpuLittleGovernorPref ? newValue.toString() : (mCpuLittleGovernorPref != null ? mCpuLittleGovernorPref.getValue() : CPU_LITTLE_DEFAULT_GOV)
-            );
-        } else if (preference == mCpuBigMinFreqPref || preference == mCpuBigMaxFreqPref || preference == mCpuBigGovernorPref) {
-            CPUUtils.setCPUBigFreq(
-                preference == mCpuBigMinFreqPref ? newValue.toString() : (mCpuBigMinFreqPref != null ? mCpuBigMinFreqPref.getValue() : CPU_BIG_DEFAULT_MIN),
-                preference == mCpuBigMaxFreqPref ? newValue.toString() : (mCpuBigMaxFreqPref != null ? mCpuBigMaxFreqPref.getValue() : CPU_BIG_DEFAULT_MAX),
-                preference == mCpuBigGovernorPref ? newValue.toString() : (mCpuBigGovernorPref != null ? mCpuBigGovernorPref.getValue() : CPU_BIG_DEFAULT_GOV)
-            );
-        } else if (preference == mCpuPrimeMinFreqPref || preference == mCpuPrimeMaxFreqPref || preference == mCpuPrimeGovernorPref) {
-            CPUUtils.setCPUPrimeFreq(
-                preference == mCpuPrimeMinFreqPref ? newValue.toString() : (mCpuPrimeMinFreqPref != null ? mCpuPrimeMinFreqPref.getValue() : CPU_PRIME_DEFAULT_MIN),
-                preference == mCpuPrimeMaxFreqPref ? newValue.toString() : (mCpuPrimeMaxFreqPref != null ? mCpuPrimeMaxFreqPref.getValue() : CPU_PRIME_DEFAULT_MAX),
-                preference == mCpuPrimeGovernorPref ? newValue.toString() : (mCpuPrimeGovernorPref != null ? mCpuPrimeGovernorPref.getValue() : CPU_PRIME_DEFAULT_GOV)
-            );
-        }
-
-        // Explicitly update the ListPreference summary after governor/scheduler changes
-        // (syncListPrefToData overrides the %s auto-format, so we must do this manually)
+    private void updateListPreferenceSafely(Preference preference, String newValue) {
         if (preference instanceof ListPreference) {
             ListPreference lp = (ListPreference) preference;
-            lp.setValue(newValue.toString());
+            lp.setValue(newValue);
             CharSequence entry = lp.getEntry();
-            lp.setSummary(entry != null ? entry : newValue.toString());
-            showToast(entry != null ? entry + " applied" : newValue + " applied");
-        }
-
-        // Also update SharedPreferences so refreshModeState sees the new value
-        SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
-        prefs.edit().putString(key, newValue.toString()).apply();
-
-        // Save to mode persistence if it's one of the manual keys
-        if (Arrays.asList(PERSIST_KEYS).contains(key)) {
-            saveToModePersistence(key, newValue);
-        }
-
-        return false; // We already called setValue manually
-    }
-
-    private void resetManualModeToDefaults() {
-        SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
-        SharedPreferences.Editor editor = prefs.edit();
-
-        // Loop through all keys and force them to stock Balance defaults
-        for (String baseKey : PERSIST_KEYS) {
-            String defaultValue = mPowerProfileUtil.getStockValueForMode(PowerProfileUtil.MODE_BALANCE, baseKey);
-            editor.putString(baseKey, defaultValue);
-
-            // Wipe out any previously saved manual states so they don't resurrect
-            String persistKey = mPowerProfileUtil.getPersistenceKey(PowerProfileUtil.MODE_MANUAL, baseKey);
-            editor.remove(persistKey);
-
-            // Update the UI dropdowns immediately
-            Preference p = findPreference(baseKey);
-            if (p instanceof ListPreference) {
-                ((ListPreference) p).setValue(defaultValue);
-            }
-        }
-        editor.apply();
-    }
-
-    private void pushManualSettingsToHardware() {
-        SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
-        
-        if (mStorageEnablePref != null && mStorageEnablePref.isChecked()) {
-            StorageUtils.setIoScheduler(prefs.getString(KEY_IO_SCHEDULER, "bfq"));
-        }
-        
-        if (mGpuEnablePref != null && mGpuEnablePref.isChecked()) {
-            GPUUtils.setGPUMinFrequency(prefs.getString(KEY_GPU_MIN_FREQ, "315000000"));
-            GPUUtils.setGPUMaxFrequency(prefs.getString(KEY_GPU_MAX_FREQ, "840000000"));
-            GPUUtils.setGPUGovernor(prefs.getString(KEY_GPU_GOVERNOR, "msm-adreno-tz"));
-        }
-        
-        if (mCpuEnablePref != null && mCpuEnablePref.isChecked()) {
-            CPUUtils.setCPULittleFreq(
-                prefs.getString(KEY_CPU_LITTLE_MIN_FREQ, "300000"),
-                prefs.getString(KEY_CPU_LITTLE_MAX_FREQ, "1804800"),
-                prefs.getString(KEY_CPU_LITTLE_GOVERNOR, "schedutil")
-            );
-            CPUUtils.setCPUBigFreq(
-                prefs.getString(KEY_CPU_BIG_MIN_FREQ, "710400"),
-                prefs.getString(KEY_CPU_BIG_MAX_FREQ, "2419200"),
-                prefs.getString(KEY_CPU_BIG_GOVERNOR, "schedutil")
-            );
-            CPUUtils.setCPUPrimeFreq(
-                prefs.getString(KEY_CPU_PRIME_MIN_FREQ, "844800"),
-                prefs.getString(KEY_CPU_PRIME_MAX_FREQ, "2841600"),
-                prefs.getString(KEY_CPU_PRIME_GOVERNOR, "schedutil")
-            );
+            lp.setSummary(entry != null ? entry : newValue);
+            showToast((entry != null ? entry : newValue) + " applied");
         }
     }
 
-    private void saveToModePersistence(String key, Object value) {
-        int mode = mPowerProfileUtil.getCurrentMode();
-        // Since preset modes are driven by init.rc, we only want to persist custom manual configurations
-        if (mode != PowerProfileUtil.MODE_MANUAL) return;
-
-        SharedPreferences prefs = getPreferenceManager().getSharedPreferences();
-        String persistKey = mPowerProfileUtil.getPersistenceKey(mode, key);
-        if (value instanceof String) {
-            prefs.edit().putString(persistKey, (String) value).apply();
-        } else if (value instanceof Boolean) {
-            prefs.edit().putBoolean(persistKey, (Boolean) value).apply();
-        }
-    }
-
-    private void checkPresetModeFallback() {
-        if ((mCpuEnablePref == null || !mCpuEnablePref.isChecked()) && 
-            (mGpuEnablePref == null || !mGpuEnablePref.isChecked()) &&
-            (mStorageEnablePref == null || !mStorageEnablePref.isChecked())) {
-            
-            // If all manual switches are turned off, drop out of Manual mode
-            // and trigger the init.rc for whatever base mode was selected in the top dropdown
-            int selectedMode = PowerProfileUtil.MODE_BALANCE;
-            try { selectedMode = Integer.parseInt(mPowerProfilePref.getValue()); } catch (Exception ignored) {}
-            mPowerProfileUtil.setMode(selectedMode);
-        }
-    }
-
-    private void updateCpuSubPrefsEnabled(boolean enabled) {
-        if (mCpuLittleMinFreqPref != null) mCpuLittleMinFreqPref.setEnabled(enabled);
-        if (mCpuLittleMaxFreqPref != null) mCpuLittleMaxFreqPref.setEnabled(enabled);
-        if (mCpuLittleGovernorPref != null) mCpuLittleGovernorPref.setEnabled(enabled);
-        if (mCpuBigMinFreqPref != null) mCpuBigMinFreqPref.setEnabled(enabled);
-        if (mCpuBigMaxFreqPref != null) mCpuBigMaxFreqPref.setEnabled(enabled);
-        if (mCpuBigGovernorPref != null) mCpuBigGovernorPref.setEnabled(enabled);
-        if (mCpuPrimeMinFreqPref != null) mCpuPrimeMinFreqPref.setEnabled(enabled);
-        if (mCpuPrimeMaxFreqPref != null) mCpuPrimeMaxFreqPref.setEnabled(enabled);
-        if (mCpuPrimeGovernorPref != null) mCpuPrimeGovernorPref.setEnabled(enabled);
-    }
-
-    private boolean isManualActive() {
-        return (mCpuEnablePref != null && mCpuEnablePref.isChecked()) ||
-               (mGpuEnablePref != null && mGpuEnablePref.isChecked()) ||
-               (mStorageEnablePref != null && mStorageEnablePref.isChecked());
-    }
-
-    private void showToast(String message) {
-        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
-    }
-
-    private void updateGovernorLists(int mode) {
-        // Always use the full governor/scheduler arrays — restriction is handled in onPreferenceChange
+    private void updateGovernorDropdowns(int mode) {
         setListPreferenceData(mCpuLittleGovernorPref, R.array.cpu_governor_entries, R.array.cpu_governor_values);
         setListPreferenceData(mCpuBigGovernorPref, R.array.cpu_governor_entries, R.array.cpu_governor_values);
         setListPreferenceData(mCpuPrimeGovernorPref, R.array.cpu_governor_entries, R.array.cpu_governor_values);
@@ -637,32 +633,16 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         setListPreferenceData(mIoSchedulerPref, R.array.io_scheduler_entries, R.array.io_scheduler_values);
     }
 
-    private String getRestrictionMessage(int mode, String value, boolean isCpuGov, boolean isGpuGov, boolean isIoSched) {
-        if (mode == PowerProfileUtil.MODE_BATTERY_SAVER) {
-            if (isCpuGov && "performance".equals(value)) {
-                return getString(R.string.governor_restricted_powersave, "Performance");
-            }
-            if (isGpuGov && ("performance".equals(value) || "msm-adreno-tz".equals(value))) {
-                String label = "msm-adreno-tz".equals(value) ? "MSM Adreno TZ" : "Performance";
-                return getString(R.string.governor_restricted_powersave, label);
-            }
-            if (isIoSched && "kyber".equals(value)) {
-                return getString(R.string.governor_restricted_powersave, "Kyber");
-            }
-        } else if (mode == PowerProfileUtil.MODE_PERFORMANCE) {
-            if (isCpuGov && ("conservative".equals(value) || "powersave".equals(value))) {
-                String label = "conservative".equals(value) ? "Conservative" : "Powersave";
-                return getString(R.string.governor_restricted_performance, label);
-            }
-            if (isGpuGov && ("userspace".equals(value) || "powersave".equals(value))) {
-                String label = "userspace".equals(value) ? "Userspace" : "Powersave";
-                return getString(R.string.governor_restricted_performance, label);
-            }
-            if (isIoSched && "bfq".equals(value)) {
-                return getString(R.string.governor_restricted_performance, "BFQ");
-            }
-        }
-        return null;
+    private void updateCpuSubPrefsEnabled(boolean enabled) {
+        safeSetEnabled(mCpuLittleMinFreqPref, enabled);
+        safeSetEnabled(mCpuLittleMaxFreqPref, enabled);
+        safeSetEnabled(mCpuLittleGovernorPref, enabled);
+        safeSetEnabled(mCpuBigMinFreqPref, enabled);
+        safeSetEnabled(mCpuBigMaxFreqPref, enabled);
+        safeSetEnabled(mCpuBigGovernorPref, enabled);
+        safeSetEnabled(mCpuPrimeMinFreqPref, enabled);
+        safeSetEnabled(mCpuPrimeMaxFreqPref, enabled);
+        safeSetEnabled(mCpuPrimeGovernorPref, enabled);
     }
 
     private void setListPreferenceData(ListPreference pref, int entriesResId, int valuesResId) {
@@ -670,5 +650,42 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
             pref.setEntries(entriesResId);
             pref.setEntryValues(valuesResId);
         }
+    }
+
+    private void setControlsEnabled(List<Preference> prefs, boolean enabled) {
+        for (Preference p : prefs) safeSetEnabled(p, enabled);
+    }
+
+    private void safeSetEnabled(Preference pref, boolean enabled) {
+        if (pref != null) pref.setEnabled(enabled);
+    }
+
+    private boolean isChecked(SwitchPreferenceCompat pref) {
+        return pref != null && pref.isChecked();
+    }
+
+    private int getCurrentProfileMode() {
+        if (mPowerProfilePref == null) return PowerProfileUtil.MODE_BALANCE;
+        try {
+            return Integer.parseInt(mPowerProfilePref.getValue());
+        } catch (NumberFormatException ignored) {
+            return PowerProfileUtil.MODE_BALANCE;
+        }
+    }
+
+    private boolean isManualActive() {
+        return isChecked(mCpuEnablePref) || isChecked(mGpuEnablePref) || isChecked(mStorageEnablePref);
+    }
+
+    private boolean isCpuGovernorPref(Preference p) {
+        return p == mCpuLittleGovernorPref || p == mCpuBigGovernorPref || p == mCpuPrimeGovernorPref;
+    }
+    
+    private boolean isCpuLittlePref(Preference p) { return p == mCpuLittleMinFreqPref || p == mCpuLittleMaxFreqPref || p == mCpuLittleGovernorPref; }
+    private boolean isCpuBigPref(Preference p) { return p == mCpuBigMinFreqPref || p == mCpuBigMaxFreqPref || p == mCpuBigGovernorPref; }
+    private boolean isCpuPrimePref(Preference p) { return p == mCpuPrimeMinFreqPref || p == mCpuPrimeMaxFreqPref || p == mCpuPrimeGovernorPref; }
+
+    private void showToast(String message) {
+        if (getContext() != null) Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
     }
 }

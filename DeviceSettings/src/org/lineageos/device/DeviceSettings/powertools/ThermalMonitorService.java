@@ -5,14 +5,13 @@
 
 package org.lineageos.device.DeviceSettings.powertools;
 
-import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
-import android.content.ComponentCallbacks2;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.pm.ServiceInfo;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -21,13 +20,7 @@ import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.Log;
 
-import androidx.preference.PreferenceManager;
-
 import org.lineageos.device.DeviceSettings.R;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class ThermalMonitorService extends Service {
 
@@ -36,54 +29,37 @@ public class ThermalMonitorService extends Service {
     private static final String NOTIF_CHANNEL = "thermal_monitor";
     private static final int NOTIF_ID = 2001;
 
+    // --- SENSOR PATHS ---
     private static final String BATTERY_TEMP_PATH = "/sys/class/power_supply/battery/temp";
     private static final String CPU_TEMP_PATH = "/sys/class/thermal/thermal_zone0/temp";
     private static final String GPU_TEMP_PATH = "/sys/class/thermal/thermal_zone20/temp";
 
-    private static final String CPU_LITTLE_MAX = "/sys/devices/system/cpu/cpufreq/policy0/scaling_max_freq";
-    private static final String CPU_BIG_MAX = "/sys/devices/system/cpu/cpufreq/policy4/scaling_max_freq";
-    private static final String CPU_PRIME_MAX = "/sys/devices/system/cpu/cpufreq/policy7/scaling_max_freq";
-    private static final String GPU_MAX_FREQ = "/sys/class/kgsl/kgsl-3d0/devfreq/max_freq";
-
-    // Governor and IO Scheduler Paths
-    private static final String CPU_LITTLE_GOV = "/sys/devices/system/cpu/cpufreq/policy0/scaling_governor";
-    private static final String CPU_BIG_GOV = "/sys/devices/system/cpu/cpufreq/policy4/scaling_governor";
-    private static final String CPU_PRIME_GOV = "/sys/devices/system/cpu/cpufreq/policy7/scaling_governor";
-    private static final String GPU_GOV = "/sys/class/kgsl/kgsl-3d0/devfreq/governor";
-    private static final String IO_SCHED = "/sys/block/sda/queue/scheduler";
-
-    public static final int THRESH_LIGHT = 45;
-    public static final int THRESH_MEDIUM = 49;
-    public static final int THRESH_HEAVY = 55;
-
-    private static final String LITTLE_NORMAL = "1804800";
-    private static final String LITTLE_LIGHT = "1555200";
-    private static final String LITTLE_MEDIUM = "1324800";
-    private static final String LITTLE_HEAVY = "1132800";
-
-    private static final String BIG_NORMAL = "2419200";
-    private static final String BIG_LIGHT = "2112000";
-    private static final String BIG_MEDIUM = "1881600";
-    private static final String BIG_HEAVY = "1555200";
-
-    private static final String PRIME_NORMAL = "2841600";
-    private static final String PRIME_LIGHT = "2476800";
-    private static final String PRIME_MEDIUM = "2131200";
-    private static final String PRIME_HEAVY = "1766400";
-
-    private static final String GPU_NORMAL = "840000000";
-    private static final String GPU_LIGHT = "676000000";
-    private static final String GPU_MEDIUM = "540000000";
-    private static final String GPU_HEAVY = "379000000";
-
+    // --- STATE THRESHOLDS ---
     public static final int STATE_NORMAL = 0;
     public static final int STATE_LIGHT = 1;
     public static final int STATE_MEDIUM = 2;
     public static final int STATE_HEAVY = 3;
 
+    public static final int THRESH_LIGHT = 45;
+    public static final int THRESH_MEDIUM = 49;
+    public static final int THRESH_HEAVY = 55;
 
+    // --- HARDWARE CONFIGURATION MATRIX ---
+    // Thermal profiles are now fully offloaded to init.performance.rc via sys.thermal_state
+    // to guarantee SELinux compliance from vendor_init without sysfs write denials.
 
-    private static volatile int sCurrentState = STATE_NORMAL;
+    private static final int[] SETTING_LOW_POWER = {0, 0, 0, 1}; // 1 at HEAVY
+    private static final int[] SETTING_BLUR_DISABLE = {0, 0, 1, 1}; // 1 at MEDIUM and HEAVY
+    
+    private static final String[] STATE_LABELS = {
+        "no throttle",
+        "LIGHT throttle (\u226545\u00b0C)",
+        "MEDIUM throttle (\u226549\u00b0C)",
+        "HEAVY throttle (\u226555\u00b0C)"
+    };
+
+    // --- LIVE SENSOR DATA ---
+    private static volatile int sCurrentState = -1; // -1 forces initial application
     private static volatile float sBatteryTempC = 0f;
     private static volatile float sCpuTempC = 0f;
     private static volatile float sGpuTempC = 0f;
@@ -91,23 +67,13 @@ public class ThermalMonitorService extends Service {
     private HandlerThread mWorkerThread;
     private Handler mHandler;
     private Runnable mMonitorRunnable;
-    private boolean mFirstTick = true; 
+    private boolean mFirstTick = true;
 
-    public static int getCurrentState() {
-        return sCurrentState;
-    }
-
-    public static float getBatteryTempC() {
-        return sBatteryTempC;
-    }
-
-    public static float getCpuTempC() {
-        return sCpuTempC;
-    }
-
-    public static float getGpuTempC() {
-        return sGpuTempC;
-    }
+    // --- PUBLIC GETTERS ---
+    public static int getCurrentState() { return Math.max(0, sCurrentState); }
+    public static float getBatteryTempC() { return sBatteryTempC; }
+    public static float getCpuTempC() { return sCpuTempC; }
+    public static float getGpuTempC() { return sGpuTempC; }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -119,10 +85,9 @@ public class ThermalMonitorService extends Service {
         super.onCreate();
         Log.i(TAG, "Starting thermal service");
         setupNotificationChannel();
+        startForegroundServiceSafe();
         
-        startForeground(NOTIF_ID, buildNotification("Thermal Monitor", "Starting..."));
-        
-        // Start a dedicated background thread for hardware polling
+        // Dedicated thread for blocking hardware polling
         mWorkerThread = new HandlerThread("ThermalMonitorThread", Process.THREAD_PRIORITY_BACKGROUND);
         mWorkerThread.start();
         mHandler = new Handler(mWorkerThread.getLooper());
@@ -138,31 +103,33 @@ public class ThermalMonitorService extends Service {
     @Override
     public void onDestroy() {
         stopMonitoring();
-        resetFrequencies();
         
-        // Force-kill the orphaned notification
-        stopForeground(true); 
-        NotificationManager nm = getSystemService(NotificationManager.class);
-        if (nm != null) {
-            nm.cancel(NOTIF_ID);
-        }
-
-        if (mWorkerThread != null) {
+        // Post reset logic to worker thread. quitSafely() guarantees non-delayed 
+        // messages in the queue (like this one) finish executing before the thread dies.
+        if (mHandler != null) {
+            mHandler.post(this::resetHardwareToNormal);
             mWorkerThread.quitSafely();
         }
+
+        stopForeground(true);
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        if (nm != null) nm.cancel(NOTIF_ID);
+
         Log.i(TAG, "Stopped thermal service");
         super.onDestroy();
     }
 
+    // --- CORE LOGIC ---
+
     private void startMonitoring() {
-        sCurrentState = -1;
         mFirstTick = true;
         mMonitorRunnable = new Runnable() {
             @Override
             public void run() {
                 readAllTemperatures();
                 int batteryC = (int) sBatteryTempC;
-                int newState = stateForTemp(batteryC);
+                int newState = calculateState(batteryC);
+                
                 applyStateIfChanged(newState);
 
                 if (mFirstTick) {
@@ -170,11 +137,7 @@ public class ThermalMonitorService extends Service {
                     updateNotificationTemp();
                 }
 
-                int delayMs = (batteryC >= THRESH_HEAVY) ? 1500
-                        : (batteryC >= THRESH_MEDIUM) ? 2000
-                        : (batteryC >= THRESH_LIGHT)  ? 2500
-                        : 4000;
-                mHandler.postDelayed(this, delayMs);
+                mHandler.postDelayed(this, getPollingDelayMs(batteryC));
             }
         };
         mHandler.post(mMonitorRunnable);
@@ -187,9 +150,8 @@ public class ThermalMonitorService extends Service {
     }
 
     private void readAllTemperatures() {
-        int rawBattery = SysfsUtils.readInt(BATTERY_TEMP_PATH, 0);
-        sBatteryTempC = rawBattery / 10f;
-
+        sBatteryTempC = SysfsUtils.readInt(BATTERY_TEMP_PATH, 0) / 10f;
+        
         int rawCPU = SysfsUtils.readInt(CPU_TEMP_PATH, 0);
         sCpuTempC = rawCPU > 1000 ? rawCPU / 1000f : rawCPU / 10f;
 
@@ -197,182 +159,80 @@ public class ThermalMonitorService extends Service {
         sGpuTempC = rawGPU > 1000 ? rawGPU / 1000f : rawGPU / 10f;
     }
 
-    private int stateForTemp(int tempC) {
-        if (tempC >= THRESH_HEAVY)
-            return STATE_HEAVY;
-        if (tempC >= THRESH_MEDIUM)
-            return STATE_MEDIUM;
-        if (tempC >= THRESH_LIGHT)
-            return STATE_LIGHT;
+    private int calculateState(int tempC) {
+        if (tempC >= THRESH_HEAVY) return STATE_HEAVY;
+        if (tempC >= THRESH_MEDIUM) return STATE_MEDIUM;
+        if (tempC >= THRESH_LIGHT) return STATE_LIGHT;
         return STATE_NORMAL;
     }
 
-    private void applyStateIfChanged(int newState) {
-        if (newState == sCurrentState)
-            return;
-        sCurrentState = newState;
-
-        // Initialize variables to defaults to prevent compilation errors
-        String little = LITTLE_NORMAL;
-        String big = BIG_NORMAL;
-        String prime = PRIME_NORMAL;
-        String gpu = GPU_NORMAL;
-        String label = "no throttle";
-
-        // Use hardcoded Balance defaults as baseline — never read from persist props
-        // which may be stale from previous manual sessions
-        String littleGov = "schedutil";
-        String bigGov = "schedutil";
-        String primeGov = "schedutil";
-        String gpuGov = "simple_ondemand";
-        String ioSched = "bfq";
-
-        switch (newState) {
-            case STATE_HEAVY:
-                little = LITTLE_HEAVY;
-                big = BIG_HEAVY;
-                prime = PRIME_HEAVY;
-                gpu = GPU_HEAVY;
-                label = "HEAVY throttle (\u226555\u00b0C)";
-                
-                // Aggressively force everything to powersave
-                littleGov = "powersave";
-                bigGov = "powersave";
-                primeGov = "powersave";
-                gpuGov = "powersave";
-                ioSched = "bfq"; 
-                
-                SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-3");
-                SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-1");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu4/core_ctl/min_cpus", "0");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu7/core_ctl/min_cpus", "0");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_upmigrate", "98 98");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_downmigrate", "95 95");
-                
-                // Enforce Battery Saver & Disable Blur
-                try {
-                    Settings.Global.putInt(getContentResolver(), "low_power", 1);
-                    Settings.Global.putInt(getContentResolver(), "disable_window_blurs", 1);
-                } catch (Exception ignored) {}
-                break;
-            case STATE_MEDIUM:
-                little = LITTLE_MEDIUM;
-                big = BIG_MEDIUM;
-                prime = PRIME_MEDIUM;
-                gpu = GPU_MEDIUM;
-                label = "MEDIUM throttle (\u226549\u00b0C)";
-                
-                // Switch heavy clusters to conservative to ramp up slower
-                bigGov = "conservative";
-                primeGov = "conservative";
-                
-                SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-6");
-                SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-3");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu4/core_ctl/min_cpus", "1");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu7/core_ctl/min_cpus", "0");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_upmigrate", "95 95");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_downmigrate", "90 90");
-                
-                // Disable Blur, keep Battery Saver normal
-                try {
-                    Settings.Global.putInt(getContentResolver(), "low_power", 0);
-                    Settings.Global.putInt(getContentResolver(), "disable_window_blurs", 1);
-                } catch (Exception ignored) {}
-                break;
-            case STATE_LIGHT:
-                little = LITTLE_LIGHT;
-                big = BIG_LIGHT;
-                prime = PRIME_LIGHT;
-                gpu = GPU_LIGHT;
-                label = "LIGHT throttle (\u226545\u00b0C)";
-                
-                SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-6");
-                SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-3");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu4/core_ctl/min_cpus", "2");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu7/core_ctl/min_cpus", "0");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_upmigrate", "95 95");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_downmigrate", "85 85");
-                
-                // Keep Blur normal, Battery Saver normal
-                try {
-                    Settings.Global.putInt(getContentResolver(), "low_power", 0);
-                    Settings.Global.putInt(getContentResolver(), "disable_window_blurs", 0);
-                } catch (Exception ignored) {}
-                break;
-            case STATE_NORMAL:
-            default:
-                // Values are already initialized to NORMAL defaults above
-                label = "no throttle";
-                
-                // Restoring typical normal behavior
-                SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-7");
-                SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-3");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu4/core_ctl/min_cpus", "2");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu7/core_ctl/min_cpus", "0");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_upmigrate", "95 95");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_downmigrate", "85 85");
-                
-                // Restore Blur and Battery Saver to off
-                try {
-                    Settings.Global.putInt(getContentResolver(), "low_power", 0);
-                    Settings.Global.putInt(getContentResolver(), "disable_window_blurs", 0);
-                } catch (Exception ignored) {}
-                break;
-        }
-
-        // Apply Frequency Caps
-        SysfsUtils.writeValue(CPU_LITTLE_MAX, little);
-        SysfsUtils.writeValue(CPU_BIG_MAX, big);
-        SysfsUtils.writeValue(CPU_PRIME_MAX, prime);
-        SysfsUtils.writeValue(GPU_MAX_FREQ, gpu);
-
-        // Apply Governor and I/O Tweaks
-        SysfsUtils.writeValue(CPU_LITTLE_GOV, littleGov);
-        SysfsUtils.writeValue(CPU_BIG_GOV, bigGov);
-        SysfsUtils.writeValue(CPU_PRIME_GOV, primeGov);
-        SysfsUtils.writeValue(GPU_GOV, gpuGov);
-        SysfsUtils.writeValue(IO_SCHED, ioSched);
-
-        Log.i(TAG, String.format("Auto Thermal: Battery=%.1f°C -> %s", sBatteryTempC, label));
-
-        updateNotification(label, String.format("Bat:%.0f\u00b0C CPU:%.0f\u00b0C GPU:%.0f\u00b0C",
-                sBatteryTempC, sCpuTempC, sGpuTempC));
+    private int getPollingDelayMs(int batteryC) {
+        if (batteryC >= THRESH_HEAVY) return 1500;
+        if (batteryC >= THRESH_MEDIUM) return 2000;
+        if (batteryC >= THRESH_LIGHT) return 2500;
+        return 4000; // Normal polling interval
     }
 
-    private void resetFrequencies() {
-        // We use the worker thread to handle the reset so onDestroy returns instantly
-        if (mHandler != null) {
-            mHandler.post(() -> {
-                // Restore Frequency Caps
-                SysfsUtils.writeValue(CPU_LITTLE_MAX, LITTLE_NORMAL);
-                SysfsUtils.writeValue(CPU_BIG_MAX, BIG_NORMAL);
-                SysfsUtils.writeValue(CPU_PRIME_MAX, PRIME_NORMAL);
-                SysfsUtils.writeValue(GPU_MAX_FREQ, GPU_NORMAL);
+    private void applyStateIfChanged(int targetState) {
+        if (targetState == sCurrentState) return;
+        sCurrentState = targetState;
 
-                // Use hardcoded Balance defaults — never read from stale persist props
-                SysfsUtils.writeValue(CPU_LITTLE_GOV, "schedutil");
-                SysfsUtils.writeValue(CPU_BIG_GOV, "schedutil");
-                SysfsUtils.writeValue(CPU_PRIME_GOV, "schedutil");
-                SysfsUtils.writeValue(GPU_GOV, "simple_ondemand");
-                SysfsUtils.writeValue(IO_SCHED, "bfq");
-                
-                // Restore Core Control / Cpuset Defaults
-                SysfsUtils.writeValue("/dev/cpuset/foreground/cpus", "0-7");
-                SysfsUtils.writeValue("/dev/cpuset/system-background/cpus", "0-3");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu4/core_ctl/min_cpus", "2");
-                SysfsUtils.writeValue("/sys/devices/system/cpu/cpu7/core_ctl/min_cpus", "0");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_upmigrate", "95 95");
-                SysfsUtils.writeValue("/proc/sys/kernel/sched_downmigrate", "85 85");
-                sCurrentState = STATE_NORMAL;
+        applyProfileToHardware(targetState);
+        updateGlobalSettings(targetState);
 
-                // Bounce sys.perf_mode_active to force init.rc to re-apply Balance profile
-                try {
-                    SystemProperties.set("sys.perf_mode_active", "-1");
-                    Thread.sleep(50);
-                    int savedMode = SystemProperties.getInt("persist.sys.perf_mode_saved", 1);
-                    SystemProperties.set("sys.perf_mode_active", String.valueOf(savedMode));
-                } catch (Exception ignored) {}
-            });
+        Log.i(TAG, String.format("Auto Thermal: Battery=%.1f\u00b0C -> %s", sBatteryTempC, STATE_LABELS[targetState]));
+
+        updateNotification(STATE_LABELS[targetState], 
+            String.format("Bat:%.0f\u00b0C CPU:%.0f\u00b0C GPU:%.0f\u00b0C", sBatteryTempC, sCpuTempC, sGpuTempC));
+    }
+
+    private void applyProfileToHardware(int stateIndex) {
+        try {
+            SystemProperties.set("sys.thermal_state", String.valueOf(stateIndex));
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to set thermal profile property", e);
+        }
+    }
+
+    private void updateGlobalSettings(int stateIndex) {
+        try {
+            Settings.Global.putInt(getContentResolver(), "low_power", SETTING_LOW_POWER[stateIndex]);
+            BlurUtils.setBlurDisabled(this, SETTING_BLUR_DISABLE[stateIndex] == 1);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to apply global settings", e);
+        }
+    }
+
+    private void resetHardwareToNormal() {
+        // Force the Normal profile payload instantly
+        applyProfileToHardware(STATE_NORMAL);
+        updateGlobalSettings(STATE_NORMAL);
+        sCurrentState = STATE_NORMAL;
+
+        // Bounce sys.perf_mode_active to force init.rc triggers to cleanly re-apply 
+        // the user's base selected profile (Balance, Perf, etc.) over our Normal payload.
+        try {
+            SystemProperties.set("sys.perf_mode_active", "-1");
+            Thread.sleep(50);
+            int savedMode = SystemProperties.getInt("persist.sys.perf_mode_saved", 1);
+            SystemProperties.set("sys.perf_mode_active", String.valueOf(savedMode));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore interrupted state
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to bounce perf_mode system properties", e);
+        }
+    }
+
+    // --- NOTIFICATION UTILS ---
+
+    private void startForegroundServiceSafe() {
+        Notification notification = buildNotification("Thermal Monitor", "Starting...");
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(NOTIF_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else if (Build.VERSION.SDK_INT >= 29) {
+            startForeground(NOTIF_ID, notification, 0); // 0 = no specific type
+        } else {
+            startForeground(NOTIF_ID, notification);
         }
     }
 
@@ -394,23 +254,23 @@ public class ThermalMonitorService extends Service {
                 .build();
     }
 
-    private void updateNotification(String state, String temp) {
+    private void updateNotification(String stateLabel, String tempValues) {
         Notification n = buildNotification(
                 getString(R.string.auto_thermal_notif_title),
-                getString(R.string.auto_thermal_notif_text, temp, state));
+                getString(R.string.auto_thermal_notif_text, tempValues, stateLabel));
         getSystemService(NotificationManager.class).notify(NOTIF_ID, n);
     }
 
     private void updateNotificationTemp() {
-        String stateLabel;
-        switch (sCurrentState) {
-            case STATE_HEAVY:  stateLabel = "Heavy \u226555\u00b0C";  break;
-            case STATE_MEDIUM: stateLabel = "Medium \u226549\u00b0C"; break;
-            case STATE_LIGHT:  stateLabel = "Light \u226545\u00b0C";  break;
-            default:           stateLabel = "Normal";         break;
-        }
-        String temps = String.format("Bat:%.0f\u00b0C  CPU:%.0f\u00b0C  GPU:%.0f\u00b0C",
-                sBatteryTempC, sCpuTempC, sGpuTempC);
-        updateNotification(stateLabel, temps);
+        int state = getCurrentState();
+        String temps = String.format("Bat:%.0f\u00b0C  CPU:%.0f\u00b0C  GPU:%.0f\u00b0C", 
+                                     sBatteryTempC, sCpuTempC, sGpuTempC);
+        
+        String label = (state >= 0 && state < STATE_LABELS.length) ? STATE_LABELS[state] : "Normal";
+        
+        // Strip the degree descriptor for the status bar if it matches our labels
+        if (label.contains("(")) label = label.substring(0, label.indexOf("(")).trim();
+        
+        updateNotification(label, temps);
     }
 }

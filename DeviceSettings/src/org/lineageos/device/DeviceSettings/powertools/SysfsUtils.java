@@ -5,40 +5,36 @@
 
 package org.lineageos.device.DeviceSettings.powertools;
 
+import android.os.SystemProperties;
 import android.util.Log;
 
-import java.io.BufferedReader;
-import java.io.FileOutputStream;
-import java.io.FileReader;
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 
 public final class SysfsUtils {
 
     private static final String TAG = "SysfsUtils";
 
+    // Prevent instantiation of utility class
     private SysfsUtils() {}
 
     public static boolean isReadable(String path) {
-        try {
-            new FileReader(path).close();
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
+        return new File(path).canRead();
     }
 
     public static boolean isWritable(String path) {
-        try {
-            new FileOutputStream(path, true).close();
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
+        return new File(path).canWrite();
     }
 
     public static String readLine(String path) {
-        try (BufferedReader br = new BufferedReader(new FileReader(path))) {
-            return br.readLine();
+        try {
+            // NIO.2 is highly optimized for fast, single-shot file reads
+            List<String> lines = Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8);
+            return lines.isEmpty() ? null : lines.get(0).trim();
         } catch (IOException e) {
             return null;
         }
@@ -46,17 +42,21 @@ public final class SysfsUtils {
 
     public static int readInt(String path, int defaultValue) {
         String val = readLine(path);
-        if (val == null) return defaultValue;
+        if (val == null || val.isEmpty()) return defaultValue;
+        
         try {
-            return Integer.parseInt(val.trim());
+            return Integer.parseInt(val); // trim() is already handled in readLine()
         } catch (NumberFormatException e) {
             return defaultValue;
         }
     }
 
     public static boolean writeValue(String path, String value) {
-        try (FileOutputStream fos = new FileOutputStream(path, false)) {
-            fos.write(value.getBytes());
+        if (value == null) return false;
+        
+        try {
+            // Replaces FileOutputStream with modern NIO, forcing UTF-8 encoding
+            Files.write(Paths.get(path), value.getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (IOException e) {
             Log.w(TAG, "writeValue failed: " + path, e);
@@ -66,8 +66,8 @@ public final class SysfsUtils {
 
     public static void writeProperty(String key, String value) {
         try {
-            Class<?> systemProperties = Class.forName("android.os.SystemProperties");
-            systemProperties.getMethod("set", String.class, String.class).invoke(null, key, value);
+            // Direct API call is infinitely faster than the previous reflection hack
+            SystemProperties.set(key, value);
         } catch (Exception e) {
             Log.e(TAG, "Failed to set property " + key, e);
         }
