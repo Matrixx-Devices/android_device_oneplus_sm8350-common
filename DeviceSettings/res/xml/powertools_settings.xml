@@ -101,8 +101,8 @@
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:key="cpu_master_category"
-        android:title="CPU Settings">
+        android:key="cpu_little_category"
+        android:title="@string/powertools_cpu_little_category">
 
         <SwitchPreferenceCompat
             android:key="cpu_enable"
@@ -111,12 +111,6 @@
             android:title="@string/powertools_cpu_enable_title"
             android:summary="@string/powertools_cpu_enable_summary"
             android:defaultValue="false" />
-            
-    </PreferenceCategory>
-
-    <PreferenceCategory
-        android:key="cpu_little_category"
-        android:title="@string/powertools_cpu_little_category">
 
         <ListPreference
             android:key="cpu_little_min_frequency"
@@ -219,6 +213,8 @@
 
         <SwitchPreferenceCompat
             android:key="storage_enable"
+            app:iconSpaceReserved="true"
+            android:icon="@drawable/ic_thermal_balance"
             android:title="@string/storage_enable_title"
             android:summary="@string/storage_enable_summary"
             android:defaultValue="false" />

@@ -5,21 +5,22 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/widget_bg"
-    android:padding="12dp">
+    android:padding="10dp">
 
-    <!-- Header: Title + Mode + Temps -->
+    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:layout_marginBottom="3dp">
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="System Monitor"
+            android:text="PowerTools Monitor"
             android:textColor="#FFFFFFFF"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:textStyle="bold" />
         <TextView
             android:id="@+id/widget_mode"
@@ -27,67 +28,34 @@
             android:layout_height="wrap_content"
             android:text="Normal"
             android:textColor="#FF6C63FF"
-            android:textSize="10sp"
+            android:textSize="9sp"
             android:textStyle="bold"
             android:background="#226C63FF"
             android:paddingStart="6dp"
             android:paddingEnd="6dp"
-            android:paddingTop="1dp"
-            android:paddingBottom="1dp" />
-    </LinearLayout>
-
-    <!-- Temperature Row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-        <TextView
-            android:id="@+id/widget_bat_temp"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🔋 --°C"
-            android:textColor="#FF29B6F6"
-            android:textSize="10sp" />
-        <TextView
-            android:id="@+id/widget_cpu_temp"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🖥 --°C"
-            android:textColor="#FF6C63FF"
-            android:textSize="10sp" />
-        <TextView
-            android:id="@+id/widget_gpu_temp"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🎮 --°C"
-            android:textColor="#FF43E97B"
-            android:textSize="10sp" />
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp" />
     </LinearLayout>
 
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="3dp"
         android:background="#22FFFFFF" />
 
-    <!-- CPU Row -->
+    <!-- CPU row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:layout_marginBottom="3dp">
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
         <TextView
             android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="CPU"
             android:textColor="#FF6C63FF"
-            android:textSize="9sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
         <ProgressBar
             android:id="@+id/widget_cpu_bar"
@@ -100,7 +68,7 @@
             android:progressDrawable="@drawable/widget_bar_cpu" />
         <TextView
             android:id="@+id/widget_cpu_text"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="--%"
@@ -108,18 +76,19 @@
             android:textSize="9sp" />
     </LinearLayout>
 
-    <!-- GPU Row -->
+    <!-- GPU row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:layout_marginBottom="3dp">
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
         <TextView
             android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="GPU"
             android:textColor="#FF43E97B"
-            android:textSize="9sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
         <ProgressBar
             android:id="@+id/widget_gpu_bar"
@@ -132,26 +101,27 @@
             android:progressDrawable="@drawable/widget_bar_gpu" />
         <TextView
             android:id="@+id/widget_gpu_text"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:text="--MHz"
+            android:text="--%"
             android:textColor="#CCFFFFFF"
             android:textSize="9sp" />
     </LinearLayout>
 
-    <!-- RAM + SWAP Row (circular style via text) -->
+    <!-- RAM row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:layout_marginBottom="3dp">
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
         <TextView
             android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="RAM"
             android:textColor="#FFFFA726"
-            android:textSize="9sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
         <ProgressBar
             android:id="@+id/widget_mem_bar"
@@ -164,7 +134,7 @@
             android:progressDrawable="@drawable/widget_bar_mem" />
         <TextView
             android:id="@+id/widget_mem_text"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="--%"
@@ -172,18 +142,19 @@
             android:textSize="9sp" />
     </LinearLayout>
 
-    <!-- SWAP Row -->
+    <!-- SWAP row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:layout_marginBottom="3dp">
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
         <TextView
             android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="SWAP"
             android:textColor="#FFCE93D8"
-            android:textSize="9sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
         <ProgressBar
             android:id="@+id/widget_swap_bar"
@@ -196,7 +167,7 @@
             android:progressDrawable="@drawable/widget_bar_cpu" />
         <TextView
             android:id="@+id/widget_swap_text"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="--%"
@@ -204,18 +175,19 @@
             android:textSize="9sp" />
     </LinearLayout>
 
-    <!-- Battery Row -->
+    <!-- Battery row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:layout_marginBottom="3dp">
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
         <TextView
             android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="BAT"
             android:textColor="#FF29B6F6"
-            android:textSize="9sp"
+            android:textSize="10sp"
             android:textStyle="bold" />
         <ProgressBar
             android:id="@+id/widget_bat_bar"
@@ -228,7 +200,7 @@
             android:progressDrawable="@drawable/widget_bar_bat" />
         <TextView
             android:id="@+id/widget_bat_text"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="--%"
@@ -236,17 +208,19 @@
             android:textSize="9sp" />
     </LinearLayout>
 
-    <!-- Storage Row -->
+    <!-- Storage row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical">
+        android:gravity="center_vertical"
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
         <TextView
             android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:text="DISK"
-            android:textColor="#FFEF5350"
-            android:textSize="9sp"
+            android:textColor="#FF26C6DA"
+            android:textSize="10sp"
             android:textStyle="bold" />
         <ProgressBar
             android:id="@+id/widget_storage_bar"
@@ -259,11 +233,110 @@
             android:progressDrawable="@drawable/widget_bar_storage" />
         <TextView
             android:id="@+id/widget_storage_text"
-            android:layout_width="40dp"
+            android:layout_width="36dp"
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="--%"
             android:textColor="#CCFFFFFF"
+            android:textSize="9sp" />
+    </LinearLayout>
+
+    <!-- TCPU temp row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
+        <TextView
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:text="TCPU"
+            android:textColor="#88FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <ProgressBar
+            android:id="@+id/widget_cpu_temp_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="7dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_bar_cpu" />
+        <TextView
+            android:id="@+id/widget_cpu_temp"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="--°C"
+            android:textColor="#88FFFFFF"
+            android:textSize="9sp" />
+    </LinearLayout>
+
+    <!-- TGPU temp row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
+        <TextView
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:text="TGPU"
+            android:textColor="#88FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <ProgressBar
+            android:id="@+id/widget_gpu_temp_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="7dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_bar_gpu" />
+        <TextView
+            android:id="@+id/widget_gpu_temp"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="--°C"
+            android:textColor="#88FFFFFF"
+            android:textSize="9sp" />
+    </LinearLayout>
+
+    <!-- TBAT temp row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="0dp"
+        android:layout_weight="1">
+        <TextView
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:text="TBAT"
+            android:textColor="#88FFFFFF"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+        <ProgressBar
+            android:id="@+id/widget_bat_temp_bar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="7dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"
+            android:progressDrawable="@drawable/widget_bar_bat" />
+        <TextView
+            android:id="@+id/widget_bat_temp"
+            android:layout_width="36dp"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="--°C"
+            android:textColor="#88FFFFFF"
             android:textSize="9sp" />
     </LinearLayout>
 

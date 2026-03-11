@@ -29,7 +29,7 @@
             android:title="@string/notification_slider_top_position"
             android:entries="@array/slider_action_entries"
             android:entryValues="@array/slider_action_values"
-            android:defaultValue="50" />
+            android:defaultValue="52" />
 
         <ListPreference
             android:key="action_middle_position"
@@ -47,7 +47,7 @@
             android:title="@string/notification_slider_bottom_position"
             android:entries="@array/slider_action_entries"
             android:entryValues="@array/slider_action_values"
-            android:defaultValue="52" />
+            android:defaultValue="50" />
     </PreferenceCategory>
 
     <PreferenceCategory

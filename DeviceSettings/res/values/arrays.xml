@@ -24,6 +24,7 @@
         <item>DnD: Total Silence</item>
         <item>DnD: Priority Only</item>
         <item>DnD: Off (All Notifications)</item>
+        <item>Torch: Off</item>
         <item>Torch: On</item>
         <item>Torch: Blink</item>
         <item>Brightness: Auto</item>
@@ -42,6 +43,7 @@
         <item>10</item>
         <item>12</item>
         <item>13</item>
+        <item>20</item>
         <item>21</item>
         <item>22</item>
         <item>30</item>

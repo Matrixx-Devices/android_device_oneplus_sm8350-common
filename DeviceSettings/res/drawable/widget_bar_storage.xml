@@ -4,6 +4,6 @@
         <shape><solid android:color="#33FFFFFF" /><corners android:radius="4dp" /></shape>
     </item>
     <item android:id="@android:id/progress">
-        <clip><shape><solid android:color="#FFEF5350" /><corners android:radius="4dp" /></shape></clip>
+        <clip><shape><solid android:color="#FF26C6DA" /><corners android:radius="4dp" /></shape></clip>
     </item>
 </layer-list>

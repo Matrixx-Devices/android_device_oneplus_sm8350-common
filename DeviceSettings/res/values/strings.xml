@@ -92,25 +92,24 @@
     <string name="powerprofile_mode_battery_saver">Power Save</string>
     <string name="powerprofile_mode_manual">Manual</string>
     <string name="powerprofile_mode_unknown">Unknown</string>
-    <string name="power_profile_footer_summary">Select a predefined profile to optimize hardware behavior, or choose Manual to unlock individual CPU, GPU, and Storage controls.</string>
+    <string name="power_profile_footer_summary">Select a predefined profile to optimize hardware behavior. Enable CPU, GPU, or Storage controls to tweak within the allowed range of the active profile.</string>
 
-    <string name="mode_status_balanced">Default system behavior • Dynamic scaling • BFQ I/O scheduler • Standard thermal throttling</string>
-    <string name="mode_status_performance">Maximum throughput • High minimum clocks • Kyber I/O scheduler • UI priority boosted • Background tasks aggressively cleared</string>
-    <string name="mode_status_battery_saver">Schedutil + capped clocks • A78 max 2.21 GHz • X1 max 2.59 GHz • GPU max 579 MHz • BFQ I/O • UFS scaling enabled</string>
-    <string name="mode_status_manual">Hardware limits unlocked • Custom frequencies, governors, and I/O schedulers enforced</string>
+    <string name="mode_status_balanced">Schedutil • A55 max 1.8 GHz • A78 max 2.22 GHz • X1 max 2.59 GHz • GPU max 840 MHz • BFQ I/O</string>
+    <string name="mode_status_performance">Performance gov (Little) • A55 max 1.8 GHz • A78 max 2.41 GHz • X1 max 2.84 GHz • GPU max 840 MHz • Kyber I/O</string>
+    <string name="mode_status_battery_saver">Schedutil + capped clocks • A78 max 2.21 GHz • X1 max 2.59 GHz • GPU max 579 MHz • BFQ I/O</string>
 
 
 
     <string name="powertools_gpu_category_title">GPU Tuning (Adreno 660)</string>
-    <string name="powertools_gpu_enable_title">Manual GPU Control</string>
-    <string name="powertools_gpu_enable_summary">Override system GPU frequencies and governor</string>
+    <string name="powertools_gpu_enable_title">GPU Tweaking</string>
+    <string name="powertools_gpu_enable_summary">Adjust GPU frequency and governor within profile limits</string>
     <string name="gpu_min_frequency">Minimum Frequency</string>
     <string name="gpu_max_frequency">Maximum Frequency</string>
     <string name="gpu_governor">Governor</string>
     <string name="gpu_governor_summary">Select GPU frequency scaling algorithm</string>
 
-    <string name="powertools_cpu_enable_title">Manual CPU Control</string>
-    <string name="powertools_cpu_enable_summary">Override Snapdragon 888 cluster limits and governors</string>
+    <string name="powertools_cpu_enable_title">CPU Tweaking</string>
+    <string name="powertools_cpu_enable_summary">Adjust CPU cluster limits and governors within profile bounds</string>
     <string name="powertools_cpu_little_category">Little Cluster (Cortex-A55, Cores 0–3)</string>
     <string name="powertools_cpu_big_category">Big Cluster (Cortex-A78, Cores 4–6)</string>
     <string name="powertools_cpu_prime_category">Prime Cluster (Cortex-X1, Core 7)</string>
@@ -133,11 +132,11 @@
 
     <string name="misc_category_title">Miscellaneous</string>
     <string name="reset_on_boot_title">Reset on boot</string>
-    <string name="reset_on_boot_summary">Reset all manual CPU, GPU, and Storage settings to defaults on every boot</string>
+    <string name="reset_on_boot_summary">Re-apply the active profile defaults to hardware on every boot</string>
 
     <string name="storage_category_title">Storage I/O</string>
-    <string name="storage_enable_title">Enable storage control</string>
-    <string name="storage_enable_summary">Override power profile defaults for I/O scheduling</string>
+    <string name="storage_enable_title">Storage I/O Tweaking</string>
+    <string name="storage_enable_summary">Override the default I/O scheduler for the active power profile</string>
 
     <string name="io_scheduler_title">I/O Scheduler</string>
     <string name="io_scheduler_dialog_title">Select I/O Scheduler</string>
