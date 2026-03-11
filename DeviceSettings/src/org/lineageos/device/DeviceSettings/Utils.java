@@ -16,88 +16,70 @@
 
 package org.lineageos.device.DeviceSettings;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.FileReader;
+import android.util.Log;
 
-public class Utils {
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
+
+public final class Utils {
+
+    private static final String TAG = "DeviceSettingsUtils";
+
+    // Prevent instantiation of utility classes
+    private Utils() {}
 
     /**
-     * Write a string value to the specified file.
-     * @param filename      The filename
-     * @param value         The value
+     * Write a string value to the specified file using fast NIO.
      */
     public static void writeValue(String filename, String value) {
-        if (filename == null) {
-            return;
-        }
+        if (filename == null || value == null) return;
+        
         try {
-            FileOutputStream fos = new FileOutputStream(new File(filename));
-            fos.write(value.getBytes());
-            fos.flush();
-            fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            Files.write(Paths.get(filename), value.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            e.printStackTrace();
+            // Never use e.printStackTrace() in AOSP code; it pollutes logcat and bypasses the log daemon.
+            Log.e(TAG, "Failed to write value to " + filename, e);
         }
     }
 
+    /**
+     * Reads the first line of a file, automatically handling stream closures.
+     */
     public static String readLine(String filename) {
-        if (filename == null) {
-            return null;
-        }
-        BufferedReader br = null;
-        String line = null;
+        if (filename == null) return null;
+        
         try {
-            br = new BufferedReader(new FileReader(filename), 1024);
-            line = br.readLine();
+            List<String> lines = Files.readAllLines(Paths.get(filename), StandardCharsets.UTF_8);
+            return lines.isEmpty() ? null : lines.get(0).trim();
         } catch (IOException e) {
             return null;
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
         }
-        return line;
     }
 
     public static String getFileValue(String filename, String defValue) {
         String fileValue = readLine(filename);
-        if (fileValue != null) {
-            return fileValue;
-        }
-        return defValue;
+        return fileValue != null ? fileValue : defValue;
     }
 
     public static boolean getFileValueAsBoolean(String filename, boolean defValue) {
         String fileValue = readLine(filename);
         if (fileValue != null) {
-            return (fileValue.equals("0") ? false : true);
+            return !"0".equals(fileValue);
         }
         return defValue;
     }
 
-    /**
-     * Check if the specified file exists.
-     * @param filename      The filename
-     * @return              Whether the file exists or not
-     */
     public static boolean fileExists(String filename) {
-        if (filename == null) {
-            return false;
-        }
-        return new File(filename).exists();
+        return filename != null && new File(filename).exists();
     }
 
     public static boolean fileWritable(String filename) {
-        return fileExists(filename) && new File(filename).canWrite();
+        // new File().canWrite() intrinsically checks if the file exists, 
+        // so we don't need to call fileExists() first and hit the disk twice.
+        return filename != null && new File(filename).canWrite();
     }
 }

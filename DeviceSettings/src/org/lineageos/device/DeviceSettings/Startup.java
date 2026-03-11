@@ -17,24 +17,41 @@
 package org.lineageos.device.DeviceSettings;
 
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
+import android.util.Log;
 
-import org.lineageos.internal.util.FileUtils;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class Startup extends BroadcastReceiver {
+public final class Startup extends BroadcastReceiver {
 
-    private static final String TAG = Startup.class.getSimpleName();
+    private static final String TAG = "DeviceSettingsStartup";
+    private static final String ACTION_INITIALIZE = "lineageos.content.Intent.ACTION_INITIALIZE_LINEAGE_HARDWARE";
+    
+    // Dedicated background queue for boot-time hardware initialization
+    private static final ExecutorService sExecutor = Executors.newSingleThreadExecutor();
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        final String action = intent.getAction();
-        if (lineageos.content.Intent.ACTION_INITIALIZE_LINEAGE_HARDWARE.equals(action)) {
-            DeviceSettings.restoreSliderStates(context);
-            DeviceSettings.restoreFastChargeSetting(context);
-            DeviceSettings.restoreVibStrengthSetting(context);
+        if (intent == null || !ACTION_INITIALIZE.equals(intent.getAction())) {
+            return;
         }
+
+        // Keep the broadcast alive while we push the heavy sysfs writes to the background
+        final PendingResult pendingResult = goAsync();
+        
+        sExecutor.execute(() -> {
+            try {
+                DeviceSettings.restoreSliderStates(context);
+                DeviceSettings.restoreFastChargeSetting(context);
+                DeviceSettings.restoreVibStrengthSetting(context);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to restore hardware settings during startup", e);
+            } finally {
+                // Safely release the broadcast wake lock
+                pendingResult.finish();
+            }
+        });
     }
 }

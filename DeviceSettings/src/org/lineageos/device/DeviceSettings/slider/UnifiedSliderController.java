@@ -13,10 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
- * Copyright (C) 2018-2022 crDroid Android Project
- * SPDX-License-Identifier: Apache-2.0
- */
 
 package org.lineageos.device.DeviceSettings.slider;
 
@@ -27,6 +23,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.media.AudioManager;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -39,34 +36,41 @@ public final class UnifiedSliderController extends SliderControllerBase {
 
     public static final int ID = 99;
     private static final String TAG = "UnifiedSliderController";
-    private static final long BLINK_INTERVAL = 250L;
-    private static final int CHANGE_DELAY = 100;
-    private static final long WAKELOCK_TIMEOUT = 60000; // 1 minute safety timeout
+    private static final long BLINK_INTERVAL_MS = 250L;
+    private static final int CHANGE_DELAY_MS = 100;
+    private static final long WAKELOCK_TIMEOUT_MS = 60000L; 
+
+    // --- ACTION CATEGORIES ---
+    private static final int CAT_NOTIF = 10;
+    private static final int CAT_FLASHLIGHT = 20;
+    private static final int CAT_BRIGHTNESS = 30;
+    private static final int CAT_ROTATION = 40;
+    private static final int CAT_RINGER = 50;
+    private static final int CAT_NOTIF_RINGER = 60;
 
     private final AudioManager mAudioManager;
     private final NotificationManager mNotificationManager;
     private final CameraManager mCameraManager;
-    private final Handler mHandler;
-    private final Handler mBlinkHandler;
-    private PowerManager.WakeLock mWakeLock;
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Handler mBlinkHandler = new Handler(Looper.getMainLooper());
+    private final PowerManager.WakeLock mWakeLock;
 
     private String mCameraId;
     private boolean mTorchEnabled = false;
-    private int mZenMode;
-    private int mRingMode;
+    private int mZenMode, mRingMode;
 
+    // --- SAVED STATES ---
     private int mSavedBrightnessMode = -1;
     private int mSavedBrightnessLevel = -1;
     private int mSavedRotationAuto = -1;
     private int mSavedRotationValue = -1;
-
-    private int mActiveActionCategory = -1; 
+    private int mActiveCategory = -1; 
 
     private final Runnable mBlinkRunnable = new Runnable() {
         @Override
         public void run() {
             if (setTorchMode(!mTorchEnabled)) {
-                mBlinkHandler.postDelayed(this, BLINK_INTERVAL);
+                mBlinkHandler.postDelayed(this, BLINK_INTERVAL_MS);
             } else if (mWakeLock.isHeld()) {
                 mWakeLock.release();
             }
@@ -78,75 +82,58 @@ public final class UnifiedSliderController extends SliderControllerBase {
         mAudioManager = context.getSystemService(AudioManager.class);
         mNotificationManager = context.getSystemService(NotificationManager.class);
         mCameraManager = context.getSystemService(CameraManager.class);
-        mHandler = new Handler();
-        mBlinkHandler = new Handler();
-        PowerManager pm = context.getSystemService(PowerManager.class);
-        mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
-    }
-
-    private int getActionCategory(int action) {
-        if (action >= 10 && action < 20) return 10;
-        if (action >= 20 && action < 30) return 20;
-        if (action >= 30 && action < 40) return 30;
-        if (action >= 40 && action < 50) return 40;
-        if (action >= 50 && action < 60) return 50;
-        if (action >= 60 && action < 70) return 60;
-        return -1;
+        mWakeLock = context.getSystemService(PowerManager.class).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
     }
 
     private boolean isPersistentCategory(int category) {
-        return category == 10 || category == 50 || category == 60;
+        return category == CAT_NOTIF || category == CAT_RINGER || category == CAT_NOTIF_RINGER;
     }
 
     @Override
     protected int processAction(int action) {
-        int newCategory = getActionCategory(action);
+        // Mathematical grouping: e.g., action 42 -> (42/10)*10 = 40 (CAT_ROTATION)
+        int newCategory = (action / 10) * 10;
 
-        // Always turn off torch immediately when moving to any non-flashlight action
-        if (newCategory != 20 && mTorchEnabled) {
-            mBlinkHandler.removeCallbacksAndMessages(null);
-            if (mWakeLock.isHeld()) mWakeLock.release();
+        // CRITICAL BUG FIX: Unconditionally kill the blink handler and force torch off 
+        // whenever we transition OUT of the flashlight category.
+        if (mActiveCategory == CAT_FLASHLIGHT && newCategory != CAT_FLASHLIGHT) {
+            stopFlashlightBlink();
             setTorchMode(false);
         }
 
-        // Restore previous state (brightness/rotation) when leaving temporary position
-        if (mActiveActionCategory != -1 && mActiveActionCategory != newCategory
-                && !isPersistentCategory(mActiveActionCategory)
-                && mActiveActionCategory != 20) {
-            restorePreviousState(mActiveActionCategory);
+        // Restore previous temporary states if moving to a new category
+        if (mActiveCategory != -1 && mActiveCategory != newCategory 
+                && !isPersistentCategory(mActiveCategory) && mActiveCategory != CAT_FLASHLIGHT) {
+            restorePreviousState(mActiveCategory);
         }
 
-        // Save state before applying temporary action
-        if (!isPersistentCategory(newCategory) && newCategory != mActiveActionCategory) {
+        // Snapshot current state before applying temporary slider overrides
+        if (!isPersistentCategory(newCategory) && newCategory != mActiveCategory) {
             saveCurrentState(newCategory);
         }
 
-        mActiveActionCategory = newCategory;
+        mActiveCategory = newCategory;
 
-        if (action >= 10 && action < 20) return processNotification(action);
-        if (action >= 20 && action < 30) return processFlashlight(action);
-        if (action >= 30 && action < 40) return processBrightness(action);
-        if (action >= 40 && action < 50) return processRotation(action);
-        if (action >= 50 && action < 60) return processRinger(action);
-        if (action >= 60 && action < 70) return processNotificationRinger(action);
-        return 0;
+        // Route to the appropriate logic block
+        switch (newCategory) {
+            case CAT_NOTIF: return processNotification(action);
+            case CAT_FLASHLIGHT: return processFlashlight(action);
+            case CAT_BRIGHTNESS: return processBrightness(action);
+            case CAT_ROTATION: return processRotation(action);
+            case CAT_RINGER: return processRinger(action);
+            case CAT_NOTIF_RINGER: return processNotificationRinger(action);
+            default: return 0;
+        }
     }
 
     private void saveCurrentState(int category) {
         try {
-            switch (category) {
-                case 30: 
-                    mSavedBrightnessMode = Settings.System.getIntForUser(mContext.getContentResolver(),
-                            Settings.System.SCREEN_BRIGHTNESS_MODE, 0, UserHandle.USER_CURRENT);
-                    mSavedBrightnessLevel = Settings.System.getIntForUser(mContext.getContentResolver(),
-                            Settings.System.SCREEN_BRIGHTNESS, 128, UserHandle.USER_CURRENT);
-                    break;
-                case 40:
-                    mSavedRotationAuto = Settings.System.getIntForUser(mContext.getContentResolver(),
-                            Settings.System.ACCELEROMETER_ROTATION, 0, UserHandle.USER_CURRENT);
-                    mSavedRotationValue = Settings.System.getIntForUser(mContext.getContentResolver(),
-                            Settings.System.USER_ROTATION, 0, UserHandle.USER_CURRENT);
-                    break;
+            if (category == CAT_BRIGHTNESS) {
+                mSavedBrightnessMode = getSystemInt(Settings.System.SCREEN_BRIGHTNESS_MODE, 0);
+                mSavedBrightnessLevel = getSystemInt(Settings.System.SCREEN_BRIGHTNESS, 128);
+            } else if (category == CAT_ROTATION) {
+                mSavedRotationAuto = getSystemInt(Settings.System.ACCELEROMETER_ROTATION, 0);
+                mSavedRotationValue = getSystemInt(Settings.System.USER_ROTATION, 0);
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to save state", e);
@@ -154,185 +141,128 @@ public final class UnifiedSliderController extends SliderControllerBase {
     }
 
     private void restorePreviousState(int category) {
-        switch (category) {
-            case 20:
-                mBlinkHandler.removeCallbacksAndMessages(null);
-                if (mWakeLock.isHeld()) mWakeLock.release();
-                setTorchMode(false);
-                break;
-            case 30:
-                if (mSavedBrightnessMode != -1) {
-                    writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE, mSavedBrightnessMode);
-                    if (mSavedBrightnessLevel != -1) writeSettings(Settings.System.SCREEN_BRIGHTNESS, mSavedBrightnessLevel);
-                    mSavedBrightnessMode = -1; mSavedBrightnessLevel = -1;
-                }
-                break;
-            case 40:
-                if (mSavedRotationAuto != -1) {
-                    writeRotation(mSavedRotationAuto == 1, mSavedRotationValue != -1 ? mSavedRotationValue : 0);
-                    mSavedRotationAuto = -1; mSavedRotationValue = -1;
-                }
-                break;
+        if (category == CAT_FLASHLIGHT) {
+            stopFlashlightBlink();
+            setTorchMode(false);
+        } else if (category == CAT_BRIGHTNESS && mSavedBrightnessMode != -1) {
+            writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE, mSavedBrightnessMode);
+            if (mSavedBrightnessLevel != -1) writeSettings(Settings.System.SCREEN_BRIGHTNESS, mSavedBrightnessLevel);
+            mSavedBrightnessMode = mSavedBrightnessLevel = -1;
+        } else if (category == CAT_ROTATION && mSavedRotationAuto != -1) {
+            writeRotation(mSavedRotationAuto == 1, mSavedRotationValue != -1 ? mSavedRotationValue : 0);
+            mSavedRotationAuto = mSavedRotationValue = -1;
         }
     }
 
     @Override
     public void reset() {
-        if (mActiveActionCategory != -1 && !isPersistentCategory(mActiveActionCategory)) {
-            restorePreviousState(mActiveActionCategory);
+        if (mActiveCategory != -1 && !isPersistentCategory(mActiveCategory)) {
+            restorePreviousState(mActiveCategory);
         }
-        mActiveActionCategory = -1;
+        mActiveCategory = -1;
         mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
         mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
         setTorchMode(false);
+        stopFlashlightBlink();
+    }
+
+    private void stopFlashlightBlink() {
         mBlinkHandler.removeCallbacksAndMessages(null);
+        setTorchMode(false);
         if (mWakeLock.isHeld()) mWakeLock.release();
     }
 
+    // --- SUB-CONTROLLER LOGIC BLOCKS ---
+
     private int processNotification(int action) {
-        switch (action) {
-            case 10:
-                mZenMode = action;
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
-                mHandler.postDelayed(() -> {
-                    if (mZenMode == action)
-                        mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_NO_INTERRUPTIONS, null, TAG);
-                }, CHANGE_DELAY);
-                return Constants.MODE_TOTAL_SILENCE;
-            case 12:
-                mZenMode = action;
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
-                mHandler.postDelayed(() -> {
-                    if (mZenMode == action)
-                        mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS, null, TAG);
-                }, CHANGE_DELAY);
-                return Constants.MODE_PRIORITY_ONLY;
-            case 13:
-                mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
-                return Constants.MODE_NONE;
+        mZenMode = action;
+        if (action == 13) {
+            mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
+            mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
+            return Constants.MODE_NONE;
         }
-        return 0;
+        
+        mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
+        mHandler.postDelayed(() -> {
+            if (mZenMode == action) {
+                int mode = (action == 10) ? Settings.Global.ZEN_MODE_NO_INTERRUPTIONS : Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS;
+                mNotificationManager.setZenMode(mode, null, TAG);
+            }
+        }, CHANGE_DELAY_MS);
+        
+        return (action == 10) ? Constants.MODE_TOTAL_SILENCE : Constants.MODE_PRIORITY_ONLY;
     }
 
     private int processFlashlight(int action) {
-        mBlinkHandler.removeCallbacksAndMessages(null);
-        if (mWakeLock.isHeld()) mWakeLock.release();
+        stopFlashlightBlink();
         switch (action) {
-            case 20:
-                return setTorchMode(false) ? Constants.MODE_FLASHLIGHT_OFF : 0;
-            case 21:
-                mCameraId = getCameraId();
-                return setTorchMode(true) ? Constants.MODE_FLASHLIGHT_ON : 0;
+            case 20: return setTorchMode(false) ? Constants.MODE_FLASHLIGHT_OFF : 0;
+            case 21: return setTorchMode(true) ? Constants.MODE_FLASHLIGHT_ON : 0;
             case 22:
-                mCameraId = getCameraId();
                 if (setTorchMode(true)) {
-                    mWakeLock.acquire(WAKELOCK_TIMEOUT); 
-                    mBlinkHandler.postDelayed(mBlinkRunnable, BLINK_INTERVAL);
+                    mWakeLock.acquire(WAKELOCK_TIMEOUT_MS); 
+                    mBlinkHandler.postDelayed(mBlinkRunnable, BLINK_INTERVAL_MS);
                     return Constants.MODE_FLASHLIGHT_BLINK;
                 }
-                return 0;
         }
         return 0;
     }
 
     private int processBrightness(int action) {
-        switch (action) {
-            case 30:
-                if (writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE,
-                        Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC))
-                    return Constants.MODE_BRIGHTNESS_AUTO;
-                break;
-            case 31:
-                if (writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE,
-                        Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL) &&
-                    writeSettings(Settings.System.SCREEN_BRIGHTNESS, 255))
-                    return Constants.MODE_BRIGHTNESS_BRIGHT;
-                break;
-            case 32:
-                if (writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE,
-                        Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL) &&
-                    writeSettings(Settings.System.SCREEN_BRIGHTNESS, 0))
-                    return Constants.MODE_BRIGHTNESS_DARK;
-                break;
+        if (action == 30 && writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC)) {
+            return Constants.MODE_BRIGHTNESS_AUTO;
+        }
+        
+        if (writeSettings(Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)) {
+            if (action == 31 && writeSettings(Settings.System.SCREEN_BRIGHTNESS, 255)) return Constants.MODE_BRIGHTNESS_BRIGHT;
+            if (action == 32 && writeSettings(Settings.System.SCREEN_BRIGHTNESS, 0)) return Constants.MODE_BRIGHTNESS_DARK;
         }
         return 0;
     }
 
     private int processRotation(int action) {
-        switch (action) {
-            case 40:
-                return writeRotation(true, 0) ? Constants.MODE_ROTATION_AUTO : 0;
-            case 41:
-                return writeRotation(false, 0) ? Constants.MODE_ROTATION_0 : 0;
-            case 42:
-                return writeRotation(false, 1) ? Constants.MODE_ROTATION_90 : 0;
-            case 43:
-                return writeRotation(false, 3) ? Constants.MODE_ROTATION_270 : 0;
-        }
+        if (action == 40) return writeRotation(true, 0) ? Constants.MODE_ROTATION_AUTO : 0;
+        if (action == 41) return writeRotation(false, 0) ? Constants.MODE_ROTATION_0 : 0;
+        if (action == 42) return writeRotation(false, 1) ? Constants.MODE_ROTATION_90 : 0;
+        if (action == 43) return writeRotation(false, 3) ? Constants.MODE_ROTATION_270 : 0;
         return 0;
     }
 
     private int processRinger(int action) {
-        switch (action) {
-            case 50:
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
-                return Constants.MODE_RING;
-            case 51:
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_VIBRATE);
-                return Constants.MODE_VIBRATE;
-            case 52:
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_SILENT);
-                return Constants.MODE_SILENT;
-        }
-        return 0;
+        int mode = (action == 50) ? AudioManager.RINGER_MODE_NORMAL : 
+                   (action == 51) ? AudioManager.RINGER_MODE_VIBRATE : AudioManager.RINGER_MODE_SILENT;
+        mAudioManager.setRingerModeInternal(mode);
+        
+        return (action == 50) ? Constants.MODE_RING : (action == 51) ? Constants.MODE_VIBRATE : Constants.MODE_SILENT;
     }
 
     private int processNotificationRinger(int action) {
-        switch (action) {
-            case 60:
-                mZenMode = action;
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_SILENT);
-                mHandler.postDelayed(() -> {
-                    if (mZenMode == action)
-                        mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_NO_INTERRUPTIONS, null, TAG);
-                }, CHANGE_DELAY);
-                return Constants.MODE_TOTAL_SILENCE;
-            case 62:
-                mZenMode = action;
-                mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
-                mHandler.postDelayed(() -> {
-                    if (mZenMode == action)
-                        mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS, null, TAG);
-                }, CHANGE_DELAY);
-                return Constants.MODE_PRIORITY_ONLY;
-            case 63:
-                mRingMode = action;
-                mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
-                mHandler.postDelayed(() -> {
-                    if (mRingMode == action)
-                        mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_NORMAL);
-                }, CHANGE_DELAY);
-                return Constants.MODE_NONE;
-            case 64:
-                mRingMode = action;
-                mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
-                mHandler.postDelayed(() -> {
-                    if (mRingMode == action)
-                        mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_VIBRATE);
-                }, CHANGE_DELAY);
-                return Constants.MODE_VIBRATE;
-            case 65:
-                mRingMode = action;
-                mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
-                mHandler.postDelayed(() -> {
-                    if (mRingMode == action)
-                        mAudioManager.setRingerModeInternal(AudioManager.RINGER_MODE_SILENT);
-                }, CHANGE_DELAY);
-                return Constants.MODE_SILENT;
+        if (action == 60 || action == 62) {
+            mZenMode = action;
+            mAudioManager.setRingerModeInternal(action == 60 ? AudioManager.RINGER_MODE_SILENT : AudioManager.RINGER_MODE_NORMAL);
+            mHandler.postDelayed(() -> {
+                if (mZenMode == action) {
+                    int mode = (action == 60) ? Settings.Global.ZEN_MODE_NO_INTERRUPTIONS : Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS;
+                    mNotificationManager.setZenMode(mode, null, TAG);
+                }
+            }, CHANGE_DELAY_MS);
+            return (action == 60) ? Constants.MODE_TOTAL_SILENCE : Constants.MODE_PRIORITY_ONLY;
         }
-        return 0;
+        
+        mRingMode = action;
+        mNotificationManager.setZenMode(Settings.Global.ZEN_MODE_OFF, null, TAG);
+        mHandler.postDelayed(() -> {
+            if (mRingMode == action) {
+                int mode = (action == 63) ? AudioManager.RINGER_MODE_NORMAL : 
+                           (action == 64) ? AudioManager.RINGER_MODE_VIBRATE : AudioManager.RINGER_MODE_SILENT;
+                mAudioManager.setRingerModeInternal(mode);
+            }
+        }, CHANGE_DELAY_MS);
+        
+        return (action == 63) ? Constants.MODE_NONE : (action == 64) ? Constants.MODE_VIBRATE : Constants.MODE_SILENT;
     }
+
+    // --- HARDWARE / SYSTEM UTILS ---
 
     private boolean setTorchMode(boolean enabled) {
         if (mCameraId == null) mCameraId = getCameraId();
@@ -351,9 +281,11 @@ public final class UnifiedSliderController extends SliderControllerBase {
         try {
             for (String id : mCameraManager.getCameraIdList()) {
                 CameraCharacteristics c = mCameraManager.getCameraCharacteristics(id);
-                if (c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) &&
-                    c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK)
+                if (Boolean.TRUE.equals(c.get(CameraCharacteristics.FLASH_INFO_AVAILABLE)) &&
+                    c.get(CameraCharacteristics.LENS_FACING) != null && 
+                    c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
                     return id;
+                }
             }
         } catch (CameraAccessException e) {
             Log.e(TAG, "Camera error", e);
@@ -361,15 +293,16 @@ public final class UnifiedSliderController extends SliderControllerBase {
         return null;
     }
 
+    private int getSystemInt(String key, int def) {
+        return Settings.System.getIntForUser(mContext.getContentResolver(), key, def, UserHandle.USER_CURRENT);
+    }
+
     private boolean writeSettings(String key, int value) {
-        return Settings.System.putIntForUser(mContext.getContentResolver(),
-                key, value, UserHandle.USER_CURRENT);
+        return Settings.System.putIntForUser(mContext.getContentResolver(), key, value, UserHandle.USER_CURRENT);
     }
 
     private boolean writeRotation(boolean auto, int rotation) {
-        return Settings.System.putIntForUser(mContext.getContentResolver(),
-                Settings.System.ACCELEROMETER_ROTATION, auto ? 1 : 0, UserHandle.USER_CURRENT) &&
-               Settings.System.putIntForUser(mContext.getContentResolver(),
-                Settings.System.USER_ROTATION, rotation, UserHandle.USER_CURRENT);
+        return writeSettings(Settings.System.ACCELEROMETER_ROTATION, auto ? 1 : 0) &&
+               writeSettings(Settings.System.USER_ROTATION, rotation);
     }
 }

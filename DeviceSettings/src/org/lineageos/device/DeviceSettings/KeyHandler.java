@@ -33,31 +33,38 @@ import org.lineageos.device.DeviceSettings.Constants;
 import org.lineageos.device.DeviceSettings.slider.UnifiedSliderController;
 
 @Keep
-public class KeyHandler implements DeviceKeyHandler {
+public final class KeyHandler implements DeviceKeyHandler {
     private static final String TAG = KeyHandler.class.getSimpleName();
+    private static final String ALERT_SLIDER_NODE = "oplus,hall_tri_state_key";
 
     private final Context mContext;
     private final UnifiedSliderController mSliderController;
     private final InputManager mInputManager;
+    
+    // PRO MOVE: Cache the hardware ID to prevent expensive Binder calls on every keypress
+    private int mAlertSliderDeviceId = -1;
 
     private final BroadcastReceiver mSliderUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             int[] actions = intent.getIntArrayExtra(Constants.EXTRA_SLIDER_ACTIONS);
-            boolean isHardware = intent.getBooleanExtra("is_hardware", true); // Default true if missing
+            boolean isHardware = intent.getBooleanExtra("is_hardware", true);
+            
             if (actions == null) {
                 Log.w(TAG, "Received UPDATE_SLIDER_SETTINGS with null actions, ignoring");
                 return;
             }
+            
             mSliderController.update(actions);
             mSliderController.restoreState(context, isHardware);
         }
     };
 
-public KeyHandler(Context context) {
+    public KeyHandler(Context context) {
         mContext = context;
         mSliderController = new UnifiedSliderController(mContext);
-        mInputManager = mContext.getSystemService(InputManager.class);
+        mInputManager = context.getSystemService(InputManager.class);
+        
         mContext.registerReceiver(mSliderUpdateReceiver,
                 new IntentFilter(Constants.ACTION_UPDATE_SLIDER_SETTINGS), 
                 Context.RECEIVER_EXPORTED);
@@ -69,19 +76,23 @@ public KeyHandler(Context context) {
             return event;
         }
 
-        // Null-safe device lookup
-        InputDevice device = (mInputManager != null)
-                ? mInputManager.getInputDevice(event.getDeviceId()) : null;
-        if (device == null) {
-            return event;
+        int currentDeviceId = event.getDeviceId();
+
+        // Fast-path: Check against our cached Device ID first
+        if (mAlertSliderDeviceId == -1 || mAlertSliderDeviceId != currentDeviceId) {
+            
+            // Slow-path: We haven't identified the slider yet, or a new device was connected
+            InputDevice device = (mInputManager != null) ? mInputManager.getInputDevice(currentDeviceId) : null;
+            
+            if (device != null && ALERT_SLIDER_NODE.equals(device.getName())) {
+                mAlertSliderDeviceId = currentDeviceId; // Cache it for all future presses!
+            } else {
+                return event; // Not the alert slider, pass it to the OS instantly
+            }
         }
 
-        String name = device.getName();
-        if (name == null || !name.equals("oplus,hall_tri_state_key")) {
-            return event;
-        }
-
+        // We confirmed it's the alert slider. Intercept and process it.
         mSliderController.processEvent(mContext, true);
-        return null;
+        return null; // Consume the event so the OS doesn't try to process it
     }
 }

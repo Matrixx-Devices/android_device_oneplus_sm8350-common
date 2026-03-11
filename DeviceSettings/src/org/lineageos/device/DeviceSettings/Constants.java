@@ -16,13 +16,15 @@
 
 package org.lineageos.device.DeviceSettings;
 
-import java.util.HashMap;
+import android.util.ArrayMap;
 import java.util.Map;
 
-public class Constants {
+public final class Constants {
 
-    public static final String SLIDER_STATE
-            = "/proc/tristatekey/tri_state";
+    // Prevent instantiation of a purely static constants class
+    private Constants() {}
+
+    public static final String SLIDER_STATE = "/proc/tristatekey/tri_state";
 
     public static final String NOTIF_SLIDER_PANEL_KEY = "notification_slider";
     public static final String NOTIF_SLIDER_ACTION_TOP_KEY = "action_top_position";
@@ -31,10 +33,8 @@ public class Constants {
 
     public static final String EXTRA_SLIDER_ACTIONS = "actions";
 
-    public static final String ACTION_UPDATE_SLIDER_POSITION
-            = "org.lineageos.device.DeviceSettings.UPDATE_SLIDER_POSITION";
-    public static final String ACTION_UPDATE_SLIDER_SETTINGS
-            = "org.lineageos.device.DeviceSettings.UPDATE_SLIDER_SETTINGS";
+    public static final String ACTION_UPDATE_SLIDER_POSITION = "org.lineageos.device.DeviceSettings.UPDATE_SLIDER_POSITION";
+    public static final String ACTION_UPDATE_SLIDER_SETTINGS = "org.lineageos.device.DeviceSettings.UPDATE_SLIDER_SETTINGS";
     public static final String EXTRA_SLIDER_POSITION = "position";
     public static final String EXTRA_SLIDER_POSITION_VALUE = "position_value";
 
@@ -45,18 +45,22 @@ public class Constants {
     public static final int MODE_VIBRATE = 604;
     public static final int MODE_RING = 605;
     public static final int MODE_SILENT = 620;
+    
     public static final int MODE_FLASHLIGHT_ON = 621;
     public static final int MODE_FLASHLIGHT_OFF = 622;
     public static final int MODE_FLASHLIGHT_BLINK = 623;
+    
     public static final int MODE_BRIGHTNESS_BRIGHT = 630;
     public static final int MODE_BRIGHTNESS_DARK = 631;
     public static final int MODE_BRIGHTNESS_AUTO = 632;
+    
     public static final int MODE_ROTATION_AUTO = 640;
     public static final int MODE_ROTATION_0 = 641;
     public static final int MODE_ROTATION_90 = 642;
     public static final int MODE_ROTATION_270 = 643;
 
-    // Holds <preference_key> -> <proc_node> mapping
-    public static final Map<String, String> sBooleanNodePreferenceMap = new HashMap<>();
-    public static final Map<String, String> sStringNodePreferenceMap = new HashMap<>();
+    // Pro Move: Use Android's ArrayMap instead of HashMap for better memory efficiency
+    // in system processes where map sizes are typically small.
+    public static final Map<String, String> sBooleanNodePreferenceMap = new ArrayMap<>();
+    public static final Map<String, String> sStringNodePreferenceMap = new ArrayMap<>();
 }
