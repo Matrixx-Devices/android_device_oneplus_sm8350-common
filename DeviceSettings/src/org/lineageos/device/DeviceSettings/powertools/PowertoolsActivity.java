@@ -30,8 +30,6 @@ public final class PowertoolsActivity extends CollapsingToolbarBaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_powertools);
 
-        // Ensure users have a clean exit route when launching directly from 
-        // the SystemMonitorWidget or the Quick Settings Tile.
         if (getActionBar() != null) {
             getActionBar().setDisplayHomeAsUpEnabled(true);
         }
@@ -49,7 +47,6 @@ public final class PowertoolsActivity extends CollapsingToolbarBaseActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            // Use modern predictive back routing instead of the deprecated onBackPressed()
             getOnBackPressedDispatcher().onBackPressed();
             return true;
         }

@@ -27,12 +27,8 @@ public class PowerProfileTileService extends TileService {
 
     private PowerProfileUtil mManager;
     
-    // Use a single-threaded executor to prevent thread-spamming if the user mashes the QS tile
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
-    // --- DATA-DRIVEN UI MATRIX ---
-    // Indexes strictly match PowerProfileUtil.MODE_* constants
-    // [0] BATTERY_SAVER, [1] BALANCE, [2] PERFORMANCE, [3] MANUAL, [4] UNKNOWN, [5] AUTO
     
     private static final int[] TILE_STATES = {
         Tile.STATE_INACTIVE, // 0: Saver
@@ -72,11 +68,9 @@ public class PowerProfileTileService extends TileService {
             return; // Lock out manual QS toggling when Auto Thermal is active
         }
         
-        // Push the toggle logic to our dedicated background queue
         mExecutor.execute(() -> {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-            // Cycle the mode natively and sync the preference key
             mManager.toggleMode();
             prefs.edit().putString("power_profile_mode", String.valueOf(mManager.getCurrentMode())).apply();
 
@@ -90,7 +84,6 @@ public class PowerProfileTileService extends TileService {
 
         int mode = mManager.getManagedMode();
         
-        // Safety bound check in case a weird mode integer gets passed
         if (mode < 0 || mode >= TILE_STATES.length) {
             mode = PowerProfileUtil.MODE_UNKNOWN; 
         }
@@ -105,7 +98,6 @@ public class PowerProfileTileService extends TileService {
 
     @Override
     public void onDestroy() {
-        // Prevent memory leaks by shutting down the executor when the service is destroyed
         mExecutor.shutdown();
         super.onDestroy();
     }

@@ -19,7 +19,6 @@ public final class SysfsUtils {
 
     private static final String TAG = "SysfsUtils";
 
-    // Prevent instantiation of utility class
     private SysfsUtils() {}
 
     public static boolean isReadable(String path) {
@@ -32,7 +31,6 @@ public final class SysfsUtils {
 
     public static String readLine(String path) {
         try {
-            // NIO.2 is highly optimized for fast, single-shot file reads
             List<String> lines = Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8);
             return lines.isEmpty() ? null : lines.get(0).trim();
         } catch (IOException e) {
@@ -55,7 +53,6 @@ public final class SysfsUtils {
         if (value == null) return false;
         
         try {
-            // Replaces FileOutputStream with modern NIO, forcing UTF-8 encoding
             Files.write(Paths.get(path), value.getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (IOException e) {
@@ -66,7 +63,6 @@ public final class SysfsUtils {
 
     public static void writeProperty(String key, String value) {
         try {
-            // Direct API call is infinitely faster than the previous reflection hack
             SystemProperties.set(key, value);
         } catch (Exception e) {
             Log.e(TAG, "Failed to set property " + key, e);

@@ -23,11 +23,13 @@
         <Preference
             android:key="auto_thermal_status"
             app:iconSpaceReserved="false"
+            app:isPreferenceVisible="false"
             android:selectable="false" />
 
         <Preference
             android:key="auto_thermal_footer"
             app:iconSpaceReserved="false"
+            app:isPreferenceVisible="false"
             android:summary="@string/auto_thermal_footer"
             android:selectable="false" />
 

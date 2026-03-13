@@ -56,9 +56,9 @@
     </string-array>
 
     <string-array name="slider_action_defaults" translatable="false">
-        <item>50</item>
-        <item>51</item>
         <item>52</item>
+        <item>51</item>
+        <item>50</item>
     </string-array>
 
     <string-array name="notification_slider_usage_entries" translatable="false">

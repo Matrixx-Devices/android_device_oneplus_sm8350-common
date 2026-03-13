@@ -29,12 +29,10 @@ public class ThermalMonitorService extends Service {
     private static final String NOTIF_CHANNEL = "thermal_monitor";
     private static final int NOTIF_ID = 2001;
 
-    // --- SENSOR PATHS ---
     private static final String BATTERY_TEMP_PATH = "/sys/class/power_supply/battery/temp";
-    private static final String CPU_TEMP_PATH = "/sys/class/thermal/thermal_zone0/temp";
-    private static final String GPU_TEMP_PATH = "/sys/class/thermal/thermal_zone20/temp";
+    private static final String CPU_TEMP_PATH = "/sys/class/thermal/thermal_zone39/temp";
+    private static final String GPU_TEMP_PATH = "/sys/class/thermal/thermal_zone54/temp";
 
-    // --- STATE THRESHOLDS ---
     public static final int STATE_NORMAL = 0;
     public static final int STATE_LIGHT = 1;
     public static final int STATE_MEDIUM = 2;
@@ -44,9 +42,6 @@ public class ThermalMonitorService extends Service {
     public static final int THRESH_MEDIUM = 49;
     public static final int THRESH_HEAVY = 55;
 
-    // --- HARDWARE CONFIGURATION MATRIX ---
-    // Thermal profiles are now fully offloaded to init.performance.rc via sys.thermal_state
-    // to guarantee SELinux compliance from vendor_init without sysfs write denials.
 
     private static final int[] SETTING_LOW_POWER = {0, 0, 0, 1}; // 1 at HEAVY
     private static final int[] SETTING_BLUR_DISABLE = {0, 0, 1, 1}; // 1 at MEDIUM and HEAVY
@@ -58,7 +53,6 @@ public class ThermalMonitorService extends Service {
         "HEAVY throttle (\u226555\u00b0C)"
     };
 
-    // --- LIVE SENSOR DATA ---
     private static volatile int sCurrentState = -1; // -1 forces initial application
     private static volatile float sBatteryTempC = 0f;
     private static volatile float sCpuTempC = 0f;
@@ -69,7 +63,6 @@ public class ThermalMonitorService extends Service {
     private Runnable mMonitorRunnable;
     private boolean mFirstTick = true;
 
-    // --- PUBLIC GETTERS ---
     public static int getCurrentState() { return Math.max(0, sCurrentState); }
     public static float getBatteryTempC() { return sBatteryTempC; }
     public static float getCpuTempC() { return sCpuTempC; }
@@ -87,7 +80,6 @@ public class ThermalMonitorService extends Service {
         setupNotificationChannel();
         startForegroundServiceSafe();
         
-        // Dedicated thread for blocking hardware polling
         mWorkerThread = new HandlerThread("ThermalMonitorThread", Process.THREAD_PRIORITY_BACKGROUND);
         mWorkerThread.start();
         mHandler = new Handler(mWorkerThread.getLooper());
@@ -104,8 +96,6 @@ public class ThermalMonitorService extends Service {
     public void onDestroy() {
         stopMonitoring();
         
-        // Post reset logic to worker thread. quitSafely() guarantees non-delayed 
-        // messages in the queue (like this one) finish executing before the thread dies.
         if (mHandler != null) {
             mHandler.post(this::resetHardwareToNormal);
             mWorkerThread.quitSafely();
@@ -119,7 +109,6 @@ public class ThermalMonitorService extends Service {
         super.onDestroy();
     }
 
-    // --- CORE LOGIC ---
 
     private void startMonitoring() {
         mFirstTick = true;
@@ -204,13 +193,10 @@ public class ThermalMonitorService extends Service {
     }
 
     private void resetHardwareToNormal() {
-        // Force the Normal profile payload instantly
         applyProfileToHardware(STATE_NORMAL);
         updateGlobalSettings(STATE_NORMAL);
         sCurrentState = STATE_NORMAL;
 
-        // Bounce sys.perf_mode_active to force init.rc triggers to cleanly re-apply 
-        // the user's base selected profile (Balance, Perf, etc.) over our Normal payload.
         try {
             SystemProperties.set("sys.perf_mode_active", "-1");
             Thread.sleep(50);
@@ -223,7 +209,6 @@ public class ThermalMonitorService extends Service {
         }
     }
 
-    // --- NOTIFICATION UTILS ---
 
     private void startForegroundServiceSafe() {
         Notification notification = buildNotification("Thermal Monitor", "Starting...");
@@ -268,7 +253,6 @@ public class ThermalMonitorService extends Service {
         
         String label = (state >= 0 && state < STATE_LABELS.length) ? STATE_LABELS[state] : "Normal";
         
-        // Strip the degree descriptor for the status bar if it matches our labels
         if (label.contains("(")) label = label.substring(0, label.indexOf("(")).trim();
         
         updateNotification(label, temps);

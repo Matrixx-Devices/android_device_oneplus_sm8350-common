@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         implements Preference.OnPreferenceChangeListener {
 
-    // --- CONSTANTS ---
     private static final String KEY_AUTO_THERMAL = "auto_thermal_enable";
     private static final String KEY_AUTO_STATUS = "auto_thermal_status";
     private static final String KEY_POWER_PROFILE_MODE = "power_profile_mode";
@@ -68,7 +67,6 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
     private static final String CPU_PRIME_DEFAULT_MAX = "2841600";
     private static final String CPU_PRIME_DEFAULT_GOV = "schedutil";
 
-    // --- UI COMPONENTS ---
     private SwitchPreferenceCompat mAutoThermalPref, mStorageEnablePref, mGpuEnablePref, mCpuEnablePref;
     private Preference mAutoStatusPref, mModeStatusPref;
     private ListPreference mPowerProfilePref, mIoSchedulerPref;
@@ -77,9 +75,8 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
     private ListPreference mCpuBigMinFreqPref, mCpuBigMaxFreqPref, mCpuBigGovernorPref;
     private ListPreference mCpuPrimeMinFreqPref, mCpuPrimeMaxFreqPref, mCpuPrimeGovernorPref;
 
-    // --- STATE ---
     private PowerProfileUtil mPowerProfileUtil;
-    private GameModeCoordinator mGameModeCoordinator;
+
     private final Handler mMainHandler = new Handler(Looper.getMainLooper());
     private final List<Preference> mAllControlPrefs = new ArrayList<>();
     private boolean mApplying = false;
@@ -96,7 +93,6 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         setPreferencesFromResource(R.xml.powertools_settings, rootKey);
         mPowerProfileUtil = new PowerProfileUtil(requireContext());
 
-        // Bind and setup all preferences efficiently
         mAutoThermalPref = bindPref(KEY_AUTO_THERMAL);
         mAutoStatusPref = findPreference(KEY_AUTO_STATUS);
         
@@ -123,6 +119,17 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         mCpuPrimeGovernorPref = bindPref(KEY_CPU_PRIME_GOVERNOR);
 
         initializeControlGroups();
+
+        // Pre-populate mode card and summaries immediately so there is no blank flash
+        // when the fragment is first drawn. onResume will do a full sync afterwards.
+        syncActiveModeUI();
+        boolean autoOn = isChecked(mAutoThermalPref);
+        int mode = getCurrentProfileMode();
+        if (mPowerProfilePref != null) {
+            CharSequence entry = mPowerProfilePref.getEntry();
+            if (entry != null) mPowerProfilePref.setSummary(autoOn ? "Auto" : entry);
+        }
+        updateModeDisplays(autoOn ? PowerProfileUtil.MODE_AUTO : mode, autoOn);
     }
 
     @SuppressWarnings("unchecked")
@@ -153,20 +160,8 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
     @Override
     public void onResume() {
         super.onResume();
-        if (mGameModeCoordinator == null) {
-            mGameModeCoordinator = new GameModeCoordinator(requireContext(), mPowerProfileUtil);
-            mGameModeCoordinator.setListener(new GameModeCoordinator.Listener() {
-                @Override
-                public void onGameSessionStarted() {
-                    mMainHandler.post(() -> lockForApply("Game session active — Performance boosted"));
-                }
-                @Override
-                public void onGameSessionEnded() {
-                    mMainHandler.postDelayed(() -> unlockAfterApply("Game ended · Profile restored"), 200);
-                }
-            });
-        }
-        mGameModeCoordinator.register();
+
+
         syncActiveModeUI();
         refreshUI();
     }
@@ -174,11 +169,10 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
     @Override
     public void onPause() {
         super.onPause();
-        if (mGameModeCoordinator != null) mGameModeCoordinator.unregister();
+
         mMainHandler.removeCallbacksAndMessages(null);
     }
 
-    // --- UI UPDATES ---
 
     private void syncActiveModeUI() {
         if (mPowerProfilePref == null || mPowerProfileUtil == null) return;
@@ -195,6 +189,8 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         if (mAutoThermalPref != null) mAutoThermalPref.setEnabled(true); // Always keep master toggle responsive
         
         if (mAutoStatusPref != null) mAutoStatusPref.setVisible(autoOn);
+        Preference autoFooter = findPreference("auto_thermal_footer");
+        if (autoFooter != null) autoFooter.setVisible(autoOn);
         if (mPowerProfilePref != null) mPowerProfilePref.setVisible(true);
 
         if (autoOn) {
@@ -216,7 +212,6 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         configurePresetModeUI();
     }
 
-    // Manual mode UI loop removed. We rely strictly on configurePresetModeUI now.
 
     private void configurePresetModeUI() {
         boolean autoOn = isChecked(mAutoThermalPref);
@@ -261,7 +256,6 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
     }
 
 
-    // --- THERMAL MONITORING ---
 
     private void startTempUpdater() {
         mMainHandler.removeCallbacks(mThermalUpdater);
@@ -287,7 +281,6 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         mMainHandler.postDelayed(mThermalUpdater, 2500);
     }
 
-    // --- EVENT ROUTING ---
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
@@ -327,10 +320,11 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
             requireContext().stopService(svc);
             mPowerProfileUtil.syncUiToMode(getCurrentProfileMode());
         }
+        refreshUI();
         mMainHandler.postDelayed(() -> {
             refreshModeState();
             unlockAfterApply(enable ? "Auto Thermal enabled" : "Auto Thermal disabled");
-        }, 1500);
+        }, 300);
     }
 
 
@@ -350,18 +344,18 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
             mMainHandler.post(() -> mPowerProfilePref.setSummary(mPowerProfilePref.getEntry()));
         }
 
+        refreshUI();
         mMainHandler.postDelayed(() -> {
             refreshModeState();
             String label = mPowerProfilePref != null ? mPowerProfilePref.getEntry().toString() : "Mode";
             unlockAfterApply(label + " applied");
-        }, 1500);
+        }, 300);
     }
 
     private void handleHardwareToggleChange(String key, boolean enabled) {
         int mode = getCurrentProfileMode();
         
         if (!enabled) {
-            // Turning OFF a toggle hard-resets that specific sub-category to default mode parameters
             resetHardwareCategoryToDefaults(key, mode);
             pushHardwareSettingsCategory(key);
             showToast("Restored default parameters");
@@ -382,12 +376,10 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         applyHardwareSetting(preference, key, newValue);
         updateListPreferenceSafely(preference, newValue);
 
-        // Commit to SharedPreferences explicitly 
         getPreferenceManager().getSharedPreferences().edit().putString(key, newValue).apply();
         return false; // Handled manually
     }
 
-    // --- HARDWARE APPLICATION ---
 
     private void applyHardwareSetting(Preference preference, String key, String newValue) {
         if (preference == mIoSchedulerPref) {
@@ -486,7 +478,6 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         editor.apply();
     }
 
-    // --- HELPERS & UTILITIES ---
 
     private void lockForApply(String status) {
         mApplying = true;
@@ -620,8 +611,9 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
             ListPreference lp = (ListPreference) preference;
             lp.setValue(newValue);
             CharSequence entry = lp.getEntry();
-            lp.setSummary(entry != null ? entry : newValue);
-            showToast((entry != null ? entry : newValue) + " applied");
+            String displayText = (entry != null) ? entry.toString() : newValue;
+            lp.setSummary(displayText);
+            showToast(displayText + " applied");
         }
     }
 
@@ -686,6 +678,10 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
     private boolean isCpuPrimePref(Preference p) { return p == mCpuPrimeMinFreqPref || p == mCpuPrimeMaxFreqPref || p == mCpuPrimeGovernorPref; }
 
     private void showToast(String message) {
-        if (getContext() != null) Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+        try {
+            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+        } catch (IllegalStateException ignored) {
+            // Fragment not attached — silently skip
+        }
     }
 }

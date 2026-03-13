@@ -30,7 +30,6 @@ public class PowerProfileUtil {
     public static final int MODE_BATTERY_SAVER = 0;
     public static final int MODE_BALANCE = 1;
     public static final int MODE_PERFORMANCE = 2;
-    // Manual removed entirely, 3 is now unused or reserved
     public static final int MODE_UNKNOWN = 4;
     public static final int MODE_AUTO = 5;
 
@@ -48,7 +47,6 @@ public class PowerProfileUtil {
     public static final String KEY_CPU_PRIME_GOVERNOR = "cpu_prime_governor";
     public static final String KEY_IO_SCHEDULER = "io_scheduler";
 
-    // Required for PowertoolsSettingsFragment persistence logic
     public static final String[] PERSIST_KEYS = {
         KEY_CPU_LITTLE_MIN_FREQ, KEY_CPU_LITTLE_MAX_FREQ, KEY_CPU_LITTLE_GOVERNOR,
         KEY_CPU_BIG_MIN_FREQ, KEY_CPU_BIG_MAX_FREQ, KEY_CPU_BIG_GOVERNOR,
@@ -57,7 +55,6 @@ public class PowerProfileUtil {
         KEY_IO_SCHEDULER
     };
 
-    // Data-Driven Configuration Matrix: Index [0] = PowerSave, [1] = Balance, [2] = Performance
     private static final Map<String, String[]> PROFILE_DEFAULTS = new HashMap<>();
     static {
         PROFILE_DEFAULTS.put(KEY_CPU_LITTLE_GOVERNOR, new String[]{"schedutil", "schedutil", "performance"});
@@ -134,7 +131,6 @@ public class PowerProfileUtil {
     }
 
     public String getStockValueForMode(int mode, String key) {
-        // Fallback to Balance (Index 1) for Manual, Auto, or Unknown modes
         int targetIndex = (mode == MODE_BATTERY_SAVER || mode == MODE_PERFORMANCE) ? mode : MODE_BALANCE;
         
         String[] values = PROFILE_DEFAULTS.get(key);
@@ -155,7 +151,6 @@ public class PowerProfileUtil {
             isEdgeEnabled = prefs.getBoolean("edge_touch", false);
         }
 
-        // Only enforce hardware overrides to SharedPreferences if in a locked preset state
         if (mCurrentMode == MODE_PERFORMANCE || mCurrentMode == MODE_BATTERY_SAVER) {
             prefs.edit()
                  .putBoolean("game_mode", isGameEnabled)
@@ -188,8 +183,6 @@ public class PowerProfileUtil {
 
     private boolean setPerformanceModeActive(int mode) {
         try {
-            // Bounce to -1 first to force init.rc property triggers to re-fire
-            // even when the target value equals the current value
             SystemProperties.set(SYS_PROP, "-1");
             Thread.sleep(50);
             

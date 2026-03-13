@@ -18,10 +18,8 @@ public final class StorageUtils {
     private static final String PROP_SCHEDULER = "persist.sys.parts.storage.scheduler";
     private static final String PROP_CLKSCALE = "persist.sys.parts.storage.clkscale";
 
-    // Use a single background thread queue to process property writes safely and sequentially
     private static final ExecutorService sExecutor = Executors.newSingleThreadExecutor();
 
-    // Prevent instantiation of utility class
     private StorageUtils() {}
 
     public static void setIoScheduler(String scheduler) {
@@ -31,11 +29,8 @@ public final class StorageUtils {
             try {
                 String currentSched = SystemProperties.get(PROP_SCHEDULER, "");
                 
-                // Force an edge transition for init.rc if the target is already active
                 if (scheduler.equals(currentSched)) {
                     SystemProperties.set(PROP_SCHEDULER, SAFE_DUMMY_SCHED);
-                    // MUST sleep briefly, otherwise init property service coalesces the writes
-                    // and misses the trigger entirely.
                     Thread.sleep(50); 
                 }
                 
@@ -52,7 +47,6 @@ public final class StorageUtils {
     public static void setUfsClkScale(boolean enable) {
         sExecutor.execute(() -> {
             try {
-                // 1 = Enabled (Powersave), 0 = Disabled (Performance)
                 SystemProperties.set(PROP_CLKSCALE, enable ? "1" : "0");
             } catch (Exception e) {
                 Log.e(TAG, "Failed to set UFS Clock Scaling", e);

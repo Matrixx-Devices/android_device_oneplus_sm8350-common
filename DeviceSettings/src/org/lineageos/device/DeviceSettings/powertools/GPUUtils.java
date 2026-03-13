@@ -40,7 +40,6 @@ public final class GPUUtils {
     public static void setGPUGovernor(String governor) {
         new Thread(() -> {
             try {
-                // Force an init.rc trigger
                 if (governor.equals(SystemProperties.get("persist.sys.parts.gpu.governor"))) {
                     SystemProperties.set("persist.sys.parts.gpu.governor", SAFE_DUMMY_GOV);
                 }

@@ -16,7 +16,6 @@ public final class CPUUtils {
     public static void setCPULittleFreq(String minFreq, String maxFreq, String governor) {
         new Thread(() -> {
             try {
-                // Force an init.rc trigger if the property is already set to the target
                 if (governor.equals(SystemProperties.get("persist.sys.parts.cpu.little.governor"))) {
                     SystemProperties.set("persist.sys.parts.cpu.little.governor", SAFE_DUMMY_GOV);
                 }
@@ -32,7 +31,6 @@ public final class CPUUtils {
     public static void setCPUBigFreq(String minFreq, String maxFreq, String governor) {
         new Thread(() -> {
             try {
-                // Force an init.rc trigger
                 if (governor.equals(SystemProperties.get("persist.sys.parts.cpu.big.governor"))) {
                     SystemProperties.set("persist.sys.parts.cpu.big.governor", SAFE_DUMMY_GOV);
                 }
@@ -48,7 +46,6 @@ public final class CPUUtils {
     public static void setCPUPrimeFreq(String minFreq, String maxFreq, String governor) {
         new Thread(() -> {
             try {
-                // Force an init.rc trigger
                 if (governor.equals(SystemProperties.get("persist.sys.parts.cpu.prime.governor"))) {
                     SystemProperties.set("persist.sys.parts.cpu.prime.governor", SAFE_DUMMY_GOV);
                 }
