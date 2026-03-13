@@ -51,7 +51,6 @@ public final class ConfigPanelSearchIndexablesProvider extends SearchIndexablesP
     @Override
     public Cursor queryXmlResources(String[] projection) {
         MatrixCursor cursor = new MatrixCursor(INDEXABLES_XML_RES_COLUMNS);
-        // FIX: Actually populate the cursor so Android Settings can index your custom XML!
         for (SearchIndexableResource sir : INDEXABLE_RES) {
             cursor.addRow(generateResourceRef(sir));
         }
@@ -66,8 +65,6 @@ public final class ConfigPanelSearchIndexablesProvider extends SearchIndexablesP
         ref[COLUMN_INDEX_XML_RES_ICON_RESID] = sir.iconResId;
         ref[COLUMN_INDEX_XML_RES_INTENT_ACTION] = "com.android.settings.action.EXTRA_SETTINGS";
         
-        // PRO MOVE: Dynamically grab the package name instead of hardcoding the string. 
-        // This prevents breakage if you ever rename or fork the package.
         ref[COLUMN_INDEX_XML_RES_INTENT_TARGET_PACKAGE] = getContext().getPackageName();
         
         ref[COLUMN_INDEX_XML_RES_INTENT_TARGET_CLASS] = sir.className;

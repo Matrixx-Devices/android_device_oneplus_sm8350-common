@@ -40,7 +40,6 @@ public final class UnifiedSliderController extends SliderControllerBase {
     private static final int CHANGE_DELAY_MS = 100;
     private static final long WAKELOCK_TIMEOUT_MS = 60000L; 
 
-    // --- ACTION CATEGORIES ---
     private static final int CAT_NOTIF = 10;
     private static final int CAT_FLASHLIGHT = 20;
     private static final int CAT_BRIGHTNESS = 30;
@@ -59,7 +58,6 @@ public final class UnifiedSliderController extends SliderControllerBase {
     private boolean mTorchEnabled = false;
     private int mZenMode, mRingMode;
 
-    // --- SAVED STATES ---
     private int mSavedBrightnessMode = -1;
     private int mSavedBrightnessLevel = -1;
     private int mSavedRotationAuto = -1;
@@ -91,30 +89,24 @@ public final class UnifiedSliderController extends SliderControllerBase {
 
     @Override
     protected int processAction(int action) {
-        // Mathematical grouping: e.g., action 42 -> (42/10)*10 = 40 (CAT_ROTATION)
         int newCategory = (action / 10) * 10;
 
-        // CRITICAL BUG FIX: Unconditionally kill the blink handler and force torch off 
-        // whenever we transition OUT of the flashlight category.
         if (mActiveCategory == CAT_FLASHLIGHT && newCategory != CAT_FLASHLIGHT) {
             stopFlashlightBlink();
             setTorchMode(false);
         }
 
-        // Restore previous temporary states if moving to a new category
         if (mActiveCategory != -1 && mActiveCategory != newCategory 
                 && !isPersistentCategory(mActiveCategory) && mActiveCategory != CAT_FLASHLIGHT) {
             restorePreviousState(mActiveCategory);
         }
 
-        // Snapshot current state before applying temporary slider overrides
         if (!isPersistentCategory(newCategory) && newCategory != mActiveCategory) {
             saveCurrentState(newCategory);
         }
 
         mActiveCategory = newCategory;
 
-        // Route to the appropriate logic block
         switch (newCategory) {
             case CAT_NOTIF: return processNotification(action);
             case CAT_FLASHLIGHT: return processFlashlight(action);
@@ -172,7 +164,6 @@ public final class UnifiedSliderController extends SliderControllerBase {
         if (mWakeLock.isHeld()) mWakeLock.release();
     }
 
-    // --- SUB-CONTROLLER LOGIC BLOCKS ---
 
     private int processNotification(int action) {
         mZenMode = action;
@@ -262,7 +253,6 @@ public final class UnifiedSliderController extends SliderControllerBase {
         return (action == 63) ? Constants.MODE_NONE : (action == 64) ? Constants.MODE_VIBRATE : Constants.MODE_SILENT;
     }
 
-    // --- HARDWARE / SYSTEM UTILS ---
 
     private boolean setTorchMode(boolean enabled) {
         if (mCameraId == null) mCameraId = getCameraId();

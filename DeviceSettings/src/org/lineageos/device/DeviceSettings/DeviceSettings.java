@@ -42,13 +42,11 @@ import org.lineageos.internal.util.FileUtils;
 public class DeviceSettings extends SettingsBasePreferenceFragment
         implements Preference.OnPreferenceChangeListener {
 
-    // --- HARDWARE NODE PATHS ---
     private static final String FILE_GAME = "/proc/touchpanel/game_switch_enable";
     private static final String FILE_EDGE = "/proc/touchpanel/oplus_tp_direction";
     private static final String FILE_FAST_CHARGE = "/sys/module/oplus_chg/parameters/force_fast_charge";
     private static final String FILE_LEVEL = "/sys/devices/platform/soc/88c000.i2c/i2c-6/6-005a/leds/vibrator/level";
 
-    // --- PREFERENCE KEYS ---
     private static final String KEY_GAME_SWITCH = "game_mode";
     private static final String KEY_EDGE_TOUCH = "edge_touch";
     private static final String KEY_USB2_SWITCH = "usb2_fast_charge";
@@ -69,7 +67,6 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
 
         mVibrator = getContext().getSystemService(Vibrator.class);
         
-        // Use factory method to eliminate boilerplate 
         mGameModeSwitch = bindSwitchPref(KEY_GAME_SWITCH, FILE_GAME);
         mEdgeTouchSwitch = bindSwitchPref(KEY_EDGE_TOUCH, FILE_EDGE);
         mUSB2FastChargeModeSwitch = bindSwitchPref(KEY_USB2_SWITCH, FILE_FAST_CHARGE);
@@ -86,7 +83,6 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         initNotificationSliderPreference();
     }
 
-    /** Helper to drastically reduce UI setup boilerplate. */
     private SwitchPreferenceCompat bindSwitchPref(String key, String sysfsPath) {
         SwitchPreferenceCompat pref = (SwitchPreferenceCompat) findPreference(key);
         if (pref != null) {
@@ -107,6 +103,9 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         super.onResume();
         enforceTouchPanelPolicy();
         enforceVibPowersaveCap();
+        if (getActivity() != null) {
+            getActivity().setTitle(R.string.device_title);
+        }
     }
 
     private void enforceVibPowersaveCap() {
@@ -142,12 +141,10 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         String key = preference.getKey();
         SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getContext()).edit();
 
-        // 1. Handle Master Toggles
         if (preference == mGameModeSwitch) return applySwitch(editor, KEY_GAME_SWITCH, FILE_GAME, (Boolean) newValue);
         if (preference == mEdgeTouchSwitch) return applySwitch(editor, KEY_EDGE_TOUCH, FILE_EDGE, (Boolean) newValue);
         if (preference == mUSB2FastChargeModeSwitch) return applySwitch(editor, KEY_USB2_SWITCH, FILE_FAST_CHARGE, (Boolean) newValue);
         
-        // 2. Handle Vibrator Tuning
         if (preference == mVibratorStrengthPreference) {
             int value = Integer.parseInt(newValue.toString());
             if (SystemProperties.getInt("persist.sys.perf_mode_saved", 1) == 0 && value > 2) {
@@ -160,7 +157,6 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
             return true;
         }
 
-        // 3. Handle Slider Action Mappings
         if (isSliderActionKey(key)) {
             String valStr = (String) newValue;
             if (isDuplicateSliderAction(key, valStr)) {
@@ -171,7 +167,6 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
             return true;
         }
 
-        // 4. Handle Dynamic Node Map Overrides
         String node = Constants.sBooleanNodePreferenceMap.get(key);
         if (!TextUtils.isEmpty(node) && FileUtils.isFileWritable(node)) {
             FileUtils.writeLine(node, (Boolean) newValue ? "1" : "0");
@@ -304,7 +299,7 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
              .putString(Constants.NOTIF_SLIDER_ACTION_TOP_KEY, actionTop)
              .putString(Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY, actionMiddle)
              .putString(Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY, actionBottom)
-             .commit(); // Ensure write finishes before broadcast
+             .commit();
 
         sendUpdateBroadcast(context, new int[] { Integer.parseInt(actionTop), Integer.parseInt(actionMiddle), Integer.parseInt(actionBottom) });
     }

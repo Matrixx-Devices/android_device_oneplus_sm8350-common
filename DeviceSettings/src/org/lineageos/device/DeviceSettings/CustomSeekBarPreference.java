@@ -233,7 +233,6 @@ public class CustomSeekBarPreference extends Preference implements SeekBar.OnSee
     }
 
     protected void changeValue(int newValue) {
-        // for subclasses
     }
 
     @Override

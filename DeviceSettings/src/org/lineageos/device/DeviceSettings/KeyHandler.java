@@ -41,7 +41,6 @@ public final class KeyHandler implements DeviceKeyHandler {
     private final UnifiedSliderController mSliderController;
     private final InputManager mInputManager;
     
-    // PRO MOVE: Cache the hardware ID to prevent expensive Binder calls on every keypress
     private int mAlertSliderDeviceId = -1;
 
     private final BroadcastReceiver mSliderUpdateReceiver = new BroadcastReceiver() {
@@ -78,10 +77,8 @@ public final class KeyHandler implements DeviceKeyHandler {
 
         int currentDeviceId = event.getDeviceId();
 
-        // Fast-path: Check against our cached Device ID first
         if (mAlertSliderDeviceId == -1 || mAlertSliderDeviceId != currentDeviceId) {
             
-            // Slow-path: We haven't identified the slider yet, or a new device was connected
             InputDevice device = (mInputManager != null) ? mInputManager.getInputDevice(currentDeviceId) : null;
             
             if (device != null && ALERT_SLIDER_NODE.equals(device.getName())) {
@@ -91,7 +88,6 @@ public final class KeyHandler implements DeviceKeyHandler {
             }
         }
 
-        // We confirmed it's the alert slider. Intercept and process it.
         mSliderController.processEvent(mContext, true);
         return null; // Consume the event so the OS doesn't try to process it
     }

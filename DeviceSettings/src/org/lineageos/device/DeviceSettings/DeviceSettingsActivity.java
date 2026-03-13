@@ -36,41 +36,49 @@ public final class DeviceSettingsActivity extends CollapsingToolbarBaseActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Ensure users have a clean exit route back to the main Android Settings app
         if (getActionBar() != null) {
             getActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE) // Smooth entry
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
                     .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame,
                             new DeviceSettings(), TAG_MAIN)
                     .commit();
         }
+
+        final CharSequence rootTitle = getString(R.string.device_title);
+        getSupportFragmentManager().registerFragmentLifecycleCallbacks(
+                new androidx.fragment.app.FragmentManager.FragmentLifecycleCallbacks() {
+                    @Override
+                    public void onFragmentResumed(@NonNull androidx.fragment.app.FragmentManager fm, @NonNull Fragment f) {
+                        super.onFragmentResumed(fm, f);
+                        if (fm.getBackStackEntryCount() == 0) {
+                            setTitle(rootTitle);
+                        }
+                    }
+                }, true);
     }
 
     @Override
-    public boolean onPreferenceStartFragment(@NonNull PreferenceFragmentCompat caller, @NonNull Preference pref) {
+    public boolean onPreferenceStartFragment(
+            @NonNull PreferenceFragmentCompat caller, @NonNull Preference pref) {
         final String fragmentClass = pref.getFragment();
         if (fragmentClass == null) return false;
 
         final Fragment fragment = getSupportFragmentManager().getFragmentFactory()
                 .instantiate(getClassLoader(), fragmentClass);
-        
+
         fragment.setArguments(pref.getExtras());
-        
-        // Target tracking allows the new fragment to send results back to the caller if needed
         fragment.setTargetFragment(caller, 0);
 
-        // Premium UX: Add standard Android "Open" animations for nested preference screens
         getSupportFragmentManager().beginTransaction()
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
                 .replace(com.android.settingslib.collapsingtoolbar.R.id.content_frame, fragment)
                 .addToBackStack(null)
                 .commit();
 
-        // Dynamically update the Collapsing Toolbar title to match the nested sub-screen
         if (pref.getTitle() != null) {
             setTitle(pref.getTitle());
         }
@@ -81,7 +89,6 @@ public final class DeviceSettingsActivity extends CollapsingToolbarBaseActivity
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
-            // Support Android 13/14+ predictive back gestures instead of deprecated onBackPressed()
             getOnBackPressedDispatcher().onBackPressed();
             return true;
         }

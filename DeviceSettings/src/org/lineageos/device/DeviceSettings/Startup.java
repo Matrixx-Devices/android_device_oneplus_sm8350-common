@@ -27,9 +27,10 @@ import java.util.concurrent.Executors;
 public final class Startup extends BroadcastReceiver {
 
     private static final String TAG = "DeviceSettingsStartup";
-    private static final String ACTION_INITIALIZE = "lineageos.content.Intent.ACTION_INITIALIZE_LINEAGE_HARDWARE";
-    
-    // Dedicated background queue for boot-time hardware initialization
+
+    private static final String ACTION_INITIALIZE =
+            "lineageos.intent.action.INITIALIZE_LINEAGE_HARDWARE";
+
     private static final ExecutorService sExecutor = Executors.newSingleThreadExecutor();
 
     @Override
@@ -38,9 +39,8 @@ public final class Startup extends BroadcastReceiver {
             return;
         }
 
-        // Keep the broadcast alive while we push the heavy sysfs writes to the background
         final PendingResult pendingResult = goAsync();
-        
+
         sExecutor.execute(() -> {
             try {
                 DeviceSettings.restoreSliderStates(context);
@@ -49,8 +49,20 @@ public final class Startup extends BroadcastReceiver {
             } catch (Exception e) {
                 Log.e(TAG, "Failed to restore hardware settings during startup", e);
             } finally {
-                // Safely release the broadcast wake lock
                 pendingResult.finish();
+            }
+        });
+
+        sExecutor.execute(() -> {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+            try {
+                DeviceSettings.restoreSliderStates(context);
+            } catch (Exception e) {
+                Log.e(TAG, "Slider restore retry failed", e);
             }
         });
     }

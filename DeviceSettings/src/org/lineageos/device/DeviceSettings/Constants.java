@@ -21,7 +21,6 @@ import java.util.Map;
 
 public final class Constants {
 
-    // Prevent instantiation of a purely static constants class
     private Constants() {}
 
     public static final String SLIDER_STATE = "/proc/tristatekey/tri_state";
@@ -59,8 +58,6 @@ public final class Constants {
     public static final int MODE_ROTATION_90 = 642;
     public static final int MODE_ROTATION_270 = 643;
 
-    // Pro Move: Use Android's ArrayMap instead of HashMap for better memory efficiency
-    // in system processes where map sizes are typically small.
     public static final Map<String, String> sBooleanNodePreferenceMap = new ArrayMap<>();
     public static final Map<String, String> sStringNodePreferenceMap = new ArrayMap<>();
 }

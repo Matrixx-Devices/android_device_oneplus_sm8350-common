@@ -54,7 +54,6 @@ public abstract class SliderControllerBase {
 
     protected abstract int processAction(int action);
 
-    // Added this to fix "method does not override or implement a method from a supertype" errors
     public abstract void reset();
 
     public final int processEvent(Context context, boolean isHardware) {
@@ -95,7 +94,6 @@ public abstract class SliderControllerBase {
             
             int state = Integer.parseInt(stateString.trim());
             
-            // Bounds check in case kernel temporarily reports 0 or out of range
             if (state < 1 || state > mActions.length) {
                 Log.w(TAG, "Invalid slider state reported by kernel: " + state);
                 return ret;

@@ -29,7 +29,6 @@ public final class Utils {
 
     private static final String TAG = "DeviceSettingsUtils";
 
-    // Prevent instantiation of utility classes
     private Utils() {}
 
     /**
@@ -41,7 +40,6 @@ public final class Utils {
         try {
             Files.write(Paths.get(filename), value.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
-            // Never use e.printStackTrace() in AOSP code; it pollutes logcat and bypasses the log daemon.
             Log.e(TAG, "Failed to write value to " + filename, e);
         }
     }
@@ -78,8 +76,6 @@ public final class Utils {
     }
 
     public static boolean fileWritable(String filename) {
-        // new File().canWrite() intrinsically checks if the file exists, 
-        // so we don't need to call fileExists() first and hit the disk twice.
         return filename != null && new File(filename).canWrite();
     }
 }
