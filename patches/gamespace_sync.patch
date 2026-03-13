@@ -1,0 +1,17 @@
+diff --git a/app/src/main/java/io/chaldeaprjkt/gamespace/utils/GameModeUtils.kt b/app/src/main/java/io/chaldeaprjkt/gamespace/utils/GameModeUtils.kt
+index 5487b19..e054745 100644
+--- a/app/src/main/java/io/chaldeaprjkt/gamespace/utils/GameModeUtils.kt
++++ b/app/src/main/java/io/chaldeaprjkt/gamespace/utils/GameModeUtils.kt
+@@ -61,6 +61,12 @@ class GameModeUtils @Inject constructor(private val context: Context) {
+         val packageName = activeGame?.packageName ?: return
+         manager?.setGameMode(packageName, mode)
+         activeGame = setGameModeFor(packageName, systemSettings, mode)
++        
++        // Notify PowerTools immediately of mid-game overlay mode shifts 
++        val extIntent = Intent("io.chaldeaprjkt.gamespace.action.GAME_START")
++        extIntent.putExtra("package_name", packageName)
++        extIntent.setPackage("org.lineageos.device.DeviceSettings")
++        context.sendBroadcastAsUser(extIntent, android.os.UserHandle.CURRENT)
+     }
+ 
+     fun setGameModeFor(packageName: String, systemSettings: SystemSettings, mode: Int): UserGame {
