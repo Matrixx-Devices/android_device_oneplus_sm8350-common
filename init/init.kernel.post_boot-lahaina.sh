@@ -146,8 +146,7 @@ echo 1 > /sys/devices/system/cpu/cpu7/core_ctl/nr_prev_assist_thresh
 echo 0 > /sys/devices/system/cpu/cpu0/core_ctl/enable
 
 # Setting b.L scheduler parameters
-echo 95 95 > /proc/sys/kernel/sched_upmigrate
-echo 85 85 > /proc/sys/kernel/sched_downmigrate
+# NOTE: sched_upmigrate / sched_downmigrate are managed by Powertools (init.performance.rc)
 echo 100 > /proc/sys/kernel/sched_group_upmigrate
 echo 85 > /proc/sys/kernel/sched_group_downmigrate
 echo 1 > /proc/sys/kernel/sched_walt_rotate_big_tasks
@@ -169,32 +168,23 @@ echo 0-3 > /dev/cpuset/system-background/cpus
 echo 0-6 > /dev/cpuset/foreground/cpus
 
 # Turn off scheduler boost at the end
-echo 0 > /proc/sys/kernel/sched_boost
+# NOTE: sched_boost is managed by Powertools (init.performance.rc)
 
 # configure governor settings for silver cluster
-echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
-echo 20000 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us
-echo 500 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us
+# NOTE: scaling_governor, down/up_rate_limit_us are managed by Powertools (init.performance.rc)
 if [ $rev == "1.0" ]; then
 	echo 1190400 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq
 else
 	echo 1209600 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/hispeed_freq
 fi
-echo 691200 > /sys/devices/system/cpu/cpufreq/policy0/scaling_min_freq
+# NOTE: scaling_min_freq is managed by Powertools (init.performance.rc)
 echo 1 > /sys/devices/system/cpu/cpufreq/policy0/schedutil/pl
 
 # configure input boost settings
-if [ $rev == "1.0" ]; then
-	echo "0:1382800" > /sys/devices/system/cpu/cpu_boost/input_boost_freq
-else
-	echo "0:1305600" > /sys/devices/system/cpu/cpu_boost/input_boost_freq
-fi
-echo 120 > /sys/devices/system/cpu/cpu_boost/input_boost_ms
+# NOTE: input_boost_freq and input_boost_ms are managed by Powertools (init.performance.rc)
 
 # configure governor settings for gold cluster
-echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy4/scaling_governor
-echo 10000 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us
-echo 500 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us
+# NOTE: scaling_governor, down/up_rate_limit_us are managed by Powertools (init.performance.rc)
 if [ $rev == "1.0" ]; then
 	echo 1497600 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/hispeed_freq
 else
@@ -203,9 +193,7 @@ fi
 echo 1 > /sys/devices/system/cpu/cpufreq/policy4/schedutil/pl
 
 # configure governor settings for gold+ cluster
-echo "schedutil" > /sys/devices/system/cpu/cpufreq/policy7/scaling_governor
-echo 5000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/down_rate_limit_us
-echo 500 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/up_rate_limit_us
+# NOTE: scaling_governor, down/up_rate_limit_us are managed by Powertools (init.performance.rc)
 if [ $rev == "1.0" ]; then
 	echo 1536000 > /sys/devices/system/cpu/cpufreq/policy7/schedutil/hispeed_freq
 else
