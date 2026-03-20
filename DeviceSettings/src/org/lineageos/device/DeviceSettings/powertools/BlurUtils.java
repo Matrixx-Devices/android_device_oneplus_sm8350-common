@@ -12,19 +12,41 @@ import androidx.preference.PreferenceManager;
 
 public class BlurUtils {
 
-    private static final String PREF_USER_BLUR = "user_blur_disabled_state";
+    /**
+     * Stores the value of disable_window_blurs that was active BEFORE powersave
+     * forced blur off. Only present in prefs when powersave is/was active.
+     * Cleared as soon as we restore from it.
+     */
+    private static final String PREF_POWERSAVE_BLUR_BACKUP = "powersave_blur_backup";
+
     private static final String SETTING_BLUR = "disable_window_blurs";
 
+    /**
+     * Called by the profile system.
+     *
+     * disable=true  → powersave is active: back up current blur state, force blur OFF.
+     * disable=false → leaving powersave: restore the backed-up value IF one exists.
+     *                 If no backup exists (user was never in powersave), do NOTHING —
+     *                 Settings.Global already persists across reboots on its own.
+     */
     public static void setBlurDisabled(Context context, boolean disable) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
         try {
             if (disable) {
-                int currentState = Settings.Global.getInt(context.getContentResolver(), SETTING_BLUR, 0);
-                if (currentState == 0) prefs.edit().putInt(PREF_USER_BLUR, currentState).apply();
+                // Save whatever the user/system currently has before stomping it
+                int current = Settings.Global.getInt(
+                        context.getContentResolver(), SETTING_BLUR, 0);
+                prefs.edit().putInt(PREF_POWERSAVE_BLUR_BACKUP, current).apply();
                 Settings.Global.putInt(context.getContentResolver(), SETTING_BLUR, 1);
             } else {
-                int savedState = prefs.getInt(PREF_USER_BLUR, 0);
-                Settings.Global.putInt(context.getContentResolver(), SETTING_BLUR, savedState);
+                // Only restore if powersave actually backed something up
+                if (prefs.contains(PREF_POWERSAVE_BLUR_BACKUP)) {
+                    int backup = prefs.getInt(PREF_POWERSAVE_BLUR_BACKUP, 0);
+                    Settings.Global.putInt(context.getContentResolver(), SETTING_BLUR, backup);
+                    // Clear the backup so we don't accidentally re-apply it later
+                    prefs.edit().remove(PREF_POWERSAVE_BLUR_BACKUP).apply();
+                }
+                // No backup → blur was never touched by us → leave it alone
             }
         } catch (Exception e) {
             e.printStackTrace();

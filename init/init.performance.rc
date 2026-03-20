@@ -1,5 +1,8 @@
 # Copyright (C) 2025 kenrow214
 
+on early-init
+    setprop sys.perf_mode_active 1
+
 on boot
     # GPU
     chown system system /sys/class/kgsl/kgsl-3d0/devfreq/min_freq
@@ -89,7 +92,7 @@ on boot
     chown system system /sys/module/lpm_levels/parameters/sleep_disabled
     chmod 0664 /sys/module/lpm_levels/parameters/sleep_disabled
 
-    setprop sys.perf_mode_active ${persist.sys.perf_mode_saved:-1}
+    setprop sys.perf_mode_active 1
 
 on property:sys.perf_mode_active=2
     write /sys/module/lpm_levels/parameters/sleep_disabled 1

@@ -198,14 +198,9 @@ public class ThermalMonitorService extends Service {
         sCurrentState = STATE_NORMAL;
 
         try {
-            SystemProperties.set("sys.perf_mode_active", "-1");
-            Thread.sleep(50);
-            int savedMode = SystemProperties.getInt("persist.sys.perf_mode_saved", 1);
-            SystemProperties.set("sys.perf_mode_active", String.valueOf(savedMode));
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupted state
+            SystemProperties.set("sys.perf_mode_active", String.valueOf(PowerProfileUtil.MODE_BALANCE));
         } catch (Exception e) {
-            Log.e(TAG, "Failed to bounce perf_mode system properties", e);
+            Log.e(TAG, "Failed to restore normal perf mode on thermal stop", e);
         }
     }
 

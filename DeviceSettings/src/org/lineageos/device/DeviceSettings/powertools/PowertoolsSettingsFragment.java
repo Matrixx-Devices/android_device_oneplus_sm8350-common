@@ -324,7 +324,7 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         mMainHandler.postDelayed(() -> {
             refreshModeState();
             unlockAfterApply(enable ? "Auto Thermal enabled" : "Auto Thermal disabled");
-        }, 300);
+        }, 1500);
     }
 
 
@@ -349,7 +349,7 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
             refreshModeState();
             String label = mPowerProfilePref != null ? mPowerProfilePref.getEntry().toString() : "Mode";
             unlockAfterApply(label + " applied");
-        }, 300);
+        }, 1500);
     }
 
     private void handleHardwareToggleChange(String key, boolean enabled) {
@@ -526,12 +526,12 @@ public class PowertoolsSettingsFragment extends PreferenceFragmentCompat
         switch (mode) {
             case PowerProfileUtil.MODE_PERFORMANCE:
                 card.setTitle("Performance");
-                card.setSummary("Max CPU/GPU \u2022 Kyber I/O \u2022 Background apps cleared");
+                card.setSummary("Max CPU/GPU \u2022 Kyber I/O \u2022 Game mode on");
                 card.setIcon(R.drawable.ic_thermal_performance);
                 break;
             case PowerProfileUtil.MODE_BATTERY_SAVER:
                 card.setTitle("Powersave");
-                card.setSummary("Conservative scaling \u2022 BFQ I/O \u2022 Background restricted");
+                card.setSummary("Conservative scaling \u2022 BFQ I/O \u2022 Thermal throttle active");
                 card.setIcon(R.drawable.ic_thermal_battery_saver);
                 break;
             default:

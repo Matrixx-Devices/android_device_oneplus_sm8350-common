@@ -7,7 +7,6 @@ package org.lineageos.device.DeviceSettings.powertools;
 
 import android.app.ActivityManager;
 import android.app.AlarmManager;
-import android.app.KeyguardManager;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
@@ -30,7 +29,6 @@ import android.content.res.ColorStateList;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.RandomAccessFile;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -114,31 +112,19 @@ public class SystemMonitorWidget extends AppWidgetProvider {
 
                 switch (action) {
                     case Intent.ACTION_SCREEN_OFF:
+                        // Phone screen turned off / locked — go to sleep
                         cancelUpdates(context);
                         showSleepingState(context);
                         break;
 
                     case Intent.ACTION_SCREEN_ON:
-                        if (isKeyguardOrLauncherVisible(context)) {
-                            showWakingState(context);
-                            new android.os.Handler(android.os.Looper.getMainLooper())
-                                    .postDelayed(() -> scheduleNextUpdate(context), 1500);
-                        }
+                        // Screen turned on (e.g. lock screen shown) — resume updates silently
+                        scheduleNextUpdate(context);
                         break;
 
                     case Intent.ACTION_USER_PRESENT:
-                        showWakingState(context);
-                        new android.os.Handler(android.os.Looper.getMainLooper())
-                                .postDelayed(() -> scheduleNextUpdate(context), 1500);
-                        break;
-
-                    case Intent.ACTION_CLOSE_SYSTEM_DIALOGS:
-                        String reason = intent.getStringExtra("reason");
-                        if ("homekey".equals(reason) || "recentapps".equals(reason)) {
-                            showWakingState(context);
-                            new android.os.Handler(android.os.Looper.getMainLooper())
-                                    .postDelayed(() -> scheduleNextUpdate(context), 1500);
-                        }
+                        // User has unlocked the phone — resume updates
+                        scheduleNextUpdate(context);
                         break;
                 }
             }
@@ -146,9 +132,8 @@ public class SystemMonitorWidget extends AppWidgetProvider {
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_OFF);
-        filter.addAction(Intent.ACTION_SCREEN_ON);      // ← added for lockscreen
+        filter.addAction(Intent.ACTION_SCREEN_ON);
         filter.addAction(Intent.ACTION_USER_PRESENT);
-        filter.addAction(Intent.ACTION_CLOSE_SYSTEM_DIALOGS);
         ctx.getApplicationContext().registerReceiver(sScreenReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
@@ -223,87 +208,13 @@ public class SystemMonitorWidget extends AppWidgetProvider {
         final PendingResult pendingResult = goAsync();
         sBackgroundExecutor.execute(() -> {
             try {
-                if (isKeyguardOrLauncherVisible(ctx)) {
-                    buildAndApplyViews(ctx, mgr, ids);
-                    scheduleNextUpdate(ctx);
-                } else {
-                    cancelUpdates(ctx);
-                    showSleepingState(ctx);
-                }
+                // Always update when called — sleeping is handled solely by SCREEN_OFF
+                buildAndApplyViews(ctx, mgr, ids);
+                scheduleNextUpdate(ctx);
             } finally {
                 pendingResult.finish();
             }
         });
-    }
-
-
-    /**
-     * Returns true when the widget should be actively updating:
-     *  - The launcher is in the foreground (home screen), OR
-     *  - The keyguard is showing (A16 QPR2 lockscreen widgets are visible)
-     */
-    private static boolean isKeyguardOrLauncherVisible(Context ctx) {
-        try {
-            KeyguardManager km = (KeyguardManager) ctx.getSystemService(Context.KEYGUARD_SERVICE);
-            if (km != null && km.isKeyguardLocked()) {
-                return true;
-            }
-        } catch (Exception ignored) {}
-
-        return isLauncherForeground(ctx);
-    }
-
-    @SuppressWarnings("deprecation")
-    private static boolean isLauncherForeground(Context ctx) {
-        try {
-            android.app.usage.UsageStatsManager usm =
-                    (android.app.usage.UsageStatsManager) ctx.getSystemService(Context.USAGE_STATS_SERVICE);
-
-            String foregroundPkg = null;
-
-            if (usm != null) {
-                long time = System.currentTimeMillis();
-                android.app.usage.UsageEvents events = usm.queryEvents(time - 3000, time + 1000);
-                if (events != null) {
-                    android.app.usage.UsageEvents.Event event = new android.app.usage.UsageEvents.Event();
-                    while (events.hasNextEvent()) {
-                        events.getNextEvent(event);
-                        if (event.getEventType() == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED) {
-                            foregroundPkg = event.getPackageName();
-                        } else if (event.getEventType() == android.app.usage.UsageEvents.Event.ACTIVITY_PAUSED) {
-                            if (event.getPackageName().equals(foregroundPkg)) {
-                                foregroundPkg = null;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (foregroundPkg == null) {
-                ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
-                if (am != null) {
-                    List<ActivityManager.RunningAppProcessInfo> apps = am.getRunningAppProcesses();
-                    if (apps != null) {
-                        for (ActivityManager.RunningAppProcessInfo app : apps) {
-                            if (app.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
-                                foregroundPkg = app.processName;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (foregroundPkg == null) return true; // unknown → assume visible
-
-            Intent homeIntent = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
-            android.content.pm.ResolveInfo resolved = ctx.getPackageManager()
-                    .resolveActivity(homeIntent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
-
-            return resolved != null && resolved.activityInfo.packageName.equals(foregroundPkg);
-        } catch (Exception e) {
-            return true;
-        }
     }
 
 

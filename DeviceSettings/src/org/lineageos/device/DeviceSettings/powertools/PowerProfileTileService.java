@@ -67,14 +67,24 @@ public class PowerProfileTileService extends TileService {
         if (mManager == null || mManager.isAutoModeEnabled()) {
             return; // Lock out manual QS toggling when Auto Thermal is active
         }
-        
+
+        // Immediately grey out the tile to block rapid re-clicks
+        Tile tile = getQsTile();
+        if (tile != null) {
+            tile.setState(Tile.STATE_UNAVAILABLE);
+            tile.setSubtitle("Applying...");
+            tile.updateTile();
+        }
+
         mExecutor.execute(() -> {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
             mManager.toggleMode();
             prefs.edit().putString("power_profile_mode", String.valueOf(mManager.getCurrentMode())).apply();
 
-            updateTile(); 
+            // Small settling delay then restore tile appearance
+            try { Thread.sleep(1500); } catch (InterruptedException ignored) {}
+            updateTile();
         });
     }
 
