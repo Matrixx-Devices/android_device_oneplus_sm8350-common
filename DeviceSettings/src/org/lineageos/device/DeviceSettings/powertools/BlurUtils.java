@@ -52,4 +52,14 @@ public class BlurUtils {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Discards any stale powersave blur backup without restoring it.
+     * Called on boot so that Settings.Global.disable_window_blurs
+     * is left exactly as the system persisted it across reboot.
+     */
+    public static void clearPowersaveBackup(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        prefs.edit().remove(PREF_POWERSAVE_BLUR_BACKUP).apply();
+    }
 }

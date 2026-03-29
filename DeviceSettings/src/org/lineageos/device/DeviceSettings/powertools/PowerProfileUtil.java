@@ -113,6 +113,25 @@ public class PowerProfileUtil {
         return success;
     }
 
+    /**
+     * Same as {@link #setMode(int)} but does NOT touch blur.
+     * Used on boot so that Settings.Global.disable_window_blurs
+     * is left exactly as the system persisted it across reboot.
+     */
+    public boolean setModeOnBoot(int mode) {
+        mCurrentMode = mode;
+        saveLastProfile(mode);
+
+        boolean success = setPerformanceModeActive(mode);
+        syncUiToMode(mode);
+
+        applyUserTouchPanel();
+        // Intentionally skip BlurUtils — let Settings.Global persist naturally.
+
+        return success;
+    }
+
+
     private void saveLastProfile(int mode) {
         SharedPreferences prefs = mContext.getSharedPreferences(
                 mContext.getPackageName() + "_preferences", Context.MODE_PRIVATE);

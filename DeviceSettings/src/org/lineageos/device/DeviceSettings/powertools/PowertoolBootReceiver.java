@@ -45,6 +45,12 @@ public final class PowertoolBootReceiver extends BroadcastReceiver {
         final PendingResult pendingResult = goAsync();
         sExecutor.execute(() -> {
             try {
+                // Discard any stale powersave blur backup so it doesn't
+                // accidentally restore blur on the first mode switch.
+                // Settings.Global (disable_window_blurs) already persists
+                // across reboots, so the user's blur preference is intact.
+                BlurUtils.clearPowersaveBackup(context);
+
                 // Reset all manual override toggles — always Normal on boot
                 prefs.edit()
                      .putString(PREF_POWER_PROFILE, String.valueOf(PowerProfileUtil.MODE_BALANCE))
@@ -53,14 +59,12 @@ public final class PowertoolBootReceiver extends BroadcastReceiver {
                      .putBoolean(PREF_STORAGE_ENABLE, false)
                      .commit();
 
-                // Apply Normal mode — this calls BlurUtils.setBlurDisabled(false),
-                // which is now a no-op unless a powersave backup exists in prefs.
-                // Settings.Global (disable_window_blurs) persists across reboots
-                // on its own, so the user's blur preference is already intact.
+                // Apply Normal mode with skipBlur=true so we don't
+                // touch the user's blur setting on boot at all.
                 PowerProfileUtil profileUtil = new PowerProfileUtil(context);
-                profileUtil.setMode(PowerProfileUtil.MODE_BALANCE);
+                profileUtil.setModeOnBoot(PowerProfileUtil.MODE_BALANCE);
 
-                Log.i(TAG, "Boot: Normal mode applied");
+                Log.i(TAG, "Boot: Normal mode applied (blur untouched)");
             } finally {
                 pendingResult.finish();
             }

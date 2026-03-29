@@ -77,6 +77,11 @@ public class ThermalMonitorService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "Starting thermal service");
+
+        // Discard any stale powersave blur backup left from before reboot.
+        // This prevents the first thermal tick from accidentally restoring blur.
+        BlurUtils.clearPowersaveBackup(this);
+
         setupNotificationChannel();
         startForegroundServiceSafe();
         
