@@ -15,10 +15,5 @@
      limitations under the License.
 -->
 <resources>
-    <!-- Default slider actions: Ring / Vibrate / Silent -->
-    <string-array name="config_defaultSliderActions" translatable="false">
-        <item>50</item>
-        <item>51</item>
-        <item>52</item>
-    </string-array>
+    
 </resources>

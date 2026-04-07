@@ -43,26 +43,12 @@ public final class Startup extends BroadcastReceiver {
 
         sExecutor.execute(() -> {
             try {
-                DeviceSettings.restoreSliderStates(context);
                 DeviceSettings.restoreFastChargeSetting(context);
                 DeviceSettings.restoreVibStrengthSetting(context);
             } catch (Exception e) {
                 Log.e(TAG, "Failed to restore hardware settings during startup", e);
             } finally {
                 pendingResult.finish();
-            }
-        });
-
-        sExecutor.execute(() -> {
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
-            try {
-                DeviceSettings.restoreSliderStates(context);
-            } catch (Exception e) {
-                Log.e(TAG, "Slider restore retry failed", e);
             }
         });
     }

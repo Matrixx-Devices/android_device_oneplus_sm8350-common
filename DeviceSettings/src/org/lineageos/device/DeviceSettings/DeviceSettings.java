@@ -35,7 +35,8 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import com.android.settingslib.widget.SettingsBasePreferenceFragment;
 
-import org.lineageos.device.DeviceSettings.Constants;
+import android.util.ArrayMap;
+import java.util.Map;
 import org.lineageos.device.DeviceSettings.powertools.PowerProfileUtil;
 import org.lineageos.internal.util.FileUtils;
 
@@ -54,6 +55,9 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
 
     private static final long[] TEST_VIB_PATTERN = { 0, 5 };
     private static final String DEFAULT_VIB_LEVEL = "3";
+
+    private static final Map<String, String> sBooleanNodePreferenceMap = new ArrayMap<>();
+    private static final Map<String, String> sStringNodePreferenceMap = new ArrayMap<>();
 
     private SwitchPreferenceCompat mGameModeSwitch;
     private SwitchPreferenceCompat mEdgeTouchSwitch;
@@ -80,7 +84,7 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
             mVibratorStrengthPreference.setEnabled(false);
         }
 
-        initNotificationSliderPreference();
+        
     }
 
     private SwitchPreferenceCompat bindSwitchPref(String key, String sysfsPath) {
@@ -125,16 +129,7 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         }
     }
 
-    private void initNotificationSliderPreference() {
-        String[] keys = { Constants.NOTIF_SLIDER_ACTION_TOP_KEY, Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY, Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY };
-        for (String key : keys) {
-            ListPreference p = (ListPreference) findPreference(key);
-            if (p != null) {
-                p.setOnPreferenceChangeListener(this);
-                p.setSummaryProvider(ListPreference.SimpleSummaryProvider.getInstance());
-            }
-        }
-    }
+    
 
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
@@ -157,23 +152,15 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
             return true;
         }
 
-        if (isSliderActionKey(key)) {
-            String valStr = (String) newValue;
-            if (isDuplicateSliderAction(key, valStr)) {
-                Toast.makeText(getContext(), "This action is already assigned to another position", Toast.LENGTH_SHORT).show();
-                return false;
-            }
-            sendSliderBroadcast(key, valStr);
-            return true;
-        }
+        
 
-        String node = Constants.sBooleanNodePreferenceMap.get(key);
+        String node = sBooleanNodePreferenceMap.get(key);
         if (!TextUtils.isEmpty(node) && FileUtils.isFileWritable(node)) {
             FileUtils.writeLine(node, (Boolean) newValue ? "1" : "0");
             return true;
         }
         
-        node = Constants.sStringNodePreferenceMap.get(key);
+        node = sStringNodePreferenceMap.get(key);
         if (!TextUtils.isEmpty(node) && FileUtils.isFileWritable(node)) {
             FileUtils.writeLine(node, (String) newValue);
             return true;
@@ -188,36 +175,7 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         return true;
     }
 
-    private boolean isSliderActionKey(String key) {
-        return Constants.NOTIF_SLIDER_ACTION_TOP_KEY.equals(key) ||
-               Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY.equals(key) ||
-               Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY.equals(key);
-    }
-
-    private void sendSliderBroadcast(String changedKey, String changedValue) {
-        int[] actions = {
-            getSliderValueWithOverride(Constants.NOTIF_SLIDER_ACTION_TOP_KEY, "50", changedKey, changedValue),
-            getSliderValueWithOverride(Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY, "51", changedKey, changedValue),
-            getSliderValueWithOverride(Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY, "52", changedKey, changedValue)
-        };
-        sendUpdateBroadcast(getContext(), actions);
-    }
-
-    private int getSliderValueWithOverride(String key, String fallback, String changedKey, String changedValue) {
-        if (key.equals(changedKey)) return Integer.parseInt(changedValue);
-        ListPreference p = (ListPreference) findPreference(key);
-        return p != null && p.getValue() != null ? Integer.parseInt(p.getValue()) : Integer.parseInt(fallback);
-    }
-
-    private boolean isDuplicateSliderAction(String changedKey, String newValue) {
-        String[] keys = { Constants.NOTIF_SLIDER_ACTION_TOP_KEY, Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY, Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY };
-        for (String key : keys) {
-            if (key.equals(changedKey)) continue;
-            ListPreference p = (ListPreference) findPreference(key);
-            if (p != null && newValue.equals(p.getValue())) return true;
-        }
-        return false;
-    }
+    
 
     private void enforceTouchPanelPolicy() {
         if (mGameModeSwitch == null || mEdgeTouchSwitch == null) return;
@@ -244,10 +202,10 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
     public void setPreferencesFromResource(int preferencesResId, String rootKey) {
         super.setPreferencesFromResource(preferencesResId, rootKey);
         
-        for (String pref : Constants.sBooleanNodePreferenceMap.keySet()) {
+        for (String pref : sBooleanNodePreferenceMap.keySet()) {
             SwitchPreferenceCompat b = (SwitchPreferenceCompat) findPreference(pref);
             if (b == null) continue;
-            String node = Constants.sBooleanNodePreferenceMap.get(pref);
+            String node = sBooleanNodePreferenceMap.get(pref);
             if (FileUtils.isFileReadable(node)) {
                 b.setChecked("1".equals(FileUtils.readOneLine(node)));
                 b.setOnPreferenceChangeListener(this);
@@ -256,10 +214,10 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
             }
         }
         
-        for (String pref : Constants.sStringNodePreferenceMap.keySet()) {
+        for (String pref : sStringNodePreferenceMap.keySet()) {
             ListPreference l = (ListPreference) findPreference(pref);
             if (l == null) continue;
-            String node = Constants.sStringNodePreferenceMap.get(pref);
+            String node = sStringNodePreferenceMap.get(pref);
             if (FileUtils.isFileReadable(node)) {
                 l.setValue(FileUtils.readOneLine(node));
                 l.setOnPreferenceChangeListener(this);
@@ -277,32 +235,9 @@ public class DeviceSettings extends SettingsBasePreferenceFragment
         }
     }
 
-    public static void sendUpdateBroadcast(Context context, int[] actions) {
-        Intent intent = new Intent(Constants.ACTION_UPDATE_SLIDER_SETTINGS);
-        intent.putExtra(Constants.EXTRA_SLIDER_ACTIONS, actions);
-        intent.putExtra("is_hardware", false); 
-        intent.setFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-        context.sendBroadcastAsUser(intent, UserHandle.CURRENT);
-    }
+    
 
-    public static void restoreSliderStates(Context context) {
-        Resources res = context.getResources();
-        SharedPreferences prefs = context.getSharedPreferences(context.getPackageName() + "_preferences", Context.MODE_PRIVATE);
-        String[] defaults = res.getStringArray(R.array.config_defaultSliderActions);
-        if (defaults.length != 3) return;
-
-        String actionTop = prefs.getString(Constants.NOTIF_SLIDER_ACTION_TOP_KEY, defaults[0]);
-        String actionMiddle = prefs.getString(Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY, defaults[1]);
-        String actionBottom = prefs.getString(Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY, defaults[2]);
-
-        prefs.edit()
-             .putString(Constants.NOTIF_SLIDER_ACTION_TOP_KEY, actionTop)
-             .putString(Constants.NOTIF_SLIDER_ACTION_MIDDLE_KEY, actionMiddle)
-             .putString(Constants.NOTIF_SLIDER_ACTION_BOTTOM_KEY, actionBottom)
-             .commit();
-
-        sendUpdateBroadcast(context, new int[] { Integer.parseInt(actionTop), Integer.parseInt(actionMiddle), Integer.parseInt(actionBottom) });
-    }
+    
 
     public static void restoreFastChargeSetting(Context context) {
         if (Utils.fileWritable(FILE_FAST_CHARGE)) {

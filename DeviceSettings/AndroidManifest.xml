@@ -33,8 +33,6 @@
     <uses-permission android:name="android.permission.MANAGE_GAME_MODE" />
     <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS" />
-    <protected-broadcast android:name="org.lineageos.device.DeviceSettings.UPDATE_SLIDER_SETTINGS" />
-    <protected-broadcast android:name="org.lineageos.device.DeviceSettings.UPDATE_SLIDER_POSITION" />
     <protected-broadcast android:name="org.lineageos.device.DeviceSettings.WIDGET_TICK" />
 
     <application
@@ -69,10 +67,7 @@
         <activity android:name=".DeviceSettings"
             android:exported="false" />
 
-        <service
-            android:name=".KeyHandler"
-            android:permission="KeyHandlerService"
-            android:exported="true" />
+        <!-- KeyHandler removed -->
 
         <receiver android:name=".Startup"
             android:exported="false">
