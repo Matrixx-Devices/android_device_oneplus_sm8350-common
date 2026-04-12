@@ -123,7 +123,6 @@ debug.cpurend.vsync=false
 # Graphics
 debug.hwui.skia_atrace_enabled=false
 debug.hwui.skia_use_perfetto_track_events=false
-debug.sf.disable_client_composition_cache=1
 debug.sf.enable_gl_backpressure=1
 debug.sf.disable_backpressure=1
 debug.sf.enable_egl_image_tracker=0
