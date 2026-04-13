@@ -86,129 +86,119 @@
     <string-array name="cpu_little_freq_entries" translatable="false">
         <item>300 MHz</item>
         <item>403 MHz</item>
-        <item>518 MHz</item>
-        <item>614 MHz</item>
+        <item>499 MHz</item>
+        <item>595 MHz</item>
         <item>691 MHz</item>
         <item>806 MHz</item>
-        <item>940 MHz</item>
-        <item>1056 MHz</item>
-        <item>1132 MHz</item>
-        <item>1228 MHz</item>
-        <item>1324 MHz</item>
-        <item>1440 MHz</item>
-        <item>1555 MHz</item>
-        <item>1670 MHz</item>
+        <item>902 MHz</item>
+        <item>998 MHz</item>
+        <item>1094 MHz</item>
+        <item>1209 MHz</item>
+        <item>1305 MHz</item>
+        <item>1401 MHz</item>
+        <item>1497 MHz</item>
+        <item>1612 MHz</item>
+        <item>1708 MHz</item>
         <item>1804 MHz</item>
     </string-array>
     <string-array name="cpu_little_freq_values" translatable="false">
         <item>300000</item>
         <item>403200</item>
-        <item>518400</item>
-        <item>614400</item>
+        <item>499200</item>
+        <item>595200</item>
         <item>691200</item>
         <item>806400</item>
-        <item>940800</item>
-        <item>1056000</item>
-        <item>1132800</item>
-        <item>1228800</item>
-        <item>1324800</item>
-        <item>1440000</item>
-        <item>1555200</item>
-        <item>1670400</item>
+        <item>902400</item>
+        <item>998400</item>
+        <item>1094400</item>
+        <item>1209600</item>
+        <item>1305600</item>
+        <item>1401600</item>
+        <item>1497600</item>
+        <item>1612800</item>
+        <item>1708800</item>
         <item>1804800</item>
     </string-array>
 
     <!-- Powertools: CPU Big (Cortex-A78, policy4) -->
     <string-array name="cpu_big_freq_entries" translatable="false">
-        <item>300 MHz</item>
-        <item>403 MHz</item>
-        <item>518 MHz</item>
-        <item>614 MHz</item>
         <item>710 MHz</item>
-        <item>883 MHz</item>
-        <item>998 MHz</item>
-        <item>1113 MHz</item>
+        <item>844 MHz</item>
+        <item>960 MHz</item>
+        <item>1075 MHz</item>
         <item>1209 MHz</item>
         <item>1324 MHz</item>
         <item>1440 MHz</item>
         <item>1555 MHz</item>
-        <item>1651 MHz</item>
+        <item>1670 MHz</item>
         <item>1766 MHz</item>
         <item>1881 MHz</item>
         <item>1996 MHz</item>
         <item>2112 MHz</item>
-        <item>2212 MHz</item>
         <item>2227 MHz</item>
+        <item>2342 MHz</item>
         <item>2419 MHz</item>
     </string-array>
     <string-array name="cpu_big_freq_values" translatable="false">
-        <item>300000</item>
-        <item>403200</item>
-        <item>518400</item>
-        <item>614400</item>
         <item>710400</item>
-        <item>883200</item>
-        <item>998400</item>
-        <item>1113600</item>
+        <item>844800</item>
+        <item>960000</item>
+        <item>1075200</item>
         <item>1209600</item>
         <item>1324800</item>
         <item>1440000</item>
         <item>1555200</item>
-        <item>1651200</item>
+        <item>1670400</item>
         <item>1766400</item>
         <item>1881600</item>
         <item>1996800</item>
         <item>2112000</item>
-        <item>2212000</item>
         <item>2227200</item>
+        <item>2342400</item>
         <item>2419200</item>
     </string-array>
 
     <!-- Powertools: CPU Prime (Cortex-X1, policy7) -->
     <string-array name="cpu_prime_freq_entries" translatable="false">
-        <item>300 MHz</item>
-        <item>403 MHz</item>
-        <item>518 MHz</item>
-        <item>614 MHz</item>
         <item>844 MHz</item>
-        <item>1036 MHz</item>
-        <item>1171 MHz</item>
-        <item>1286 MHz</item>
-        <item>1401 MHz</item>
-        <item>1536 MHz</item>
-        <item>1651 MHz</item>
-        <item>1766 MHz</item>
-        <item>1881 MHz</item>
-        <item>1996 MHz</item>
-        <item>2131 MHz</item>
-        <item>2246 MHz</item>
-        <item>2361 MHz</item>
-        <item>2476 MHz</item>
+        <item>960 MHz</item>
+        <item>1075 MHz</item>
+        <item>1190 MHz</item>
+        <item>1305 MHz</item>
+        <item>1420 MHz</item>
+        <item>1555 MHz</item>
+        <item>1670 MHz</item>
+        <item>1785 MHz</item>
+        <item>1900 MHz</item>
+        <item>2035 MHz</item>
+        <item>2150 MHz</item>
+        <item>2265 MHz</item>
+        <item>2380 MHz</item>
+        <item>2496 MHz</item>
         <item>2592 MHz</item>
-        <item>2707 MHz</item>
+        <item>2688 MHz</item>
+        <item>2764 MHz</item>
         <item>2841 MHz</item>
     </string-array>
     <string-array name="cpu_prime_freq_values" translatable="false">
-        <item>300000</item>
-        <item>403200</item>
-        <item>518400</item>
-        <item>614400</item>
         <item>844800</item>
-        <item>1036800</item>
-        <item>1171200</item>
-        <item>1286400</item>
-        <item>1401600</item>
-        <item>1536000</item>
-        <item>1651200</item>
-        <item>1766400</item>
-        <item>1881600</item>
-        <item>1996800</item>
-        <item>2131200</item>
-        <item>2246400</item>
-        <item>2361600</item>
-        <item>2476800</item>
+        <item>960000</item>
+        <item>1075200</item>
+        <item>1190400</item>
+        <item>1305600</item>
+        <item>1420800</item>
+        <item>1555200</item>
+        <item>1670400</item>
+        <item>1785600</item>
+        <item>1900800</item>
+        <item>2035200</item>
+        <item>2150400</item>
+        <item>2265600</item>
+        <item>2380800</item>
+        <item>2496000</item>
         <item>2592000</item>
-        <item>2707200</item>
+        <item>2688000</item>
+        <item>2764800</item>
         <item>2841600</item>
     </string-array>
 

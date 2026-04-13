@@ -65,10 +65,10 @@ public class PowerProfileUtil {
         
         PROFILE_DEFAULTS.put(KEY_CPU_LITTLE_MIN_FREQ, new String[]{"300000", "300000", "300000"});
         PROFILE_DEFAULTS.put(KEY_CPU_BIG_MIN_FREQ,    new String[]{"710400", "710400", "844800"});
-        PROFILE_DEFAULTS.put(KEY_CPU_PRIME_MIN_FREQ,  new String[]{"844800", "844800", "917100"});
+        PROFILE_DEFAULTS.put(KEY_CPU_PRIME_MIN_FREQ,  new String[]{"844800", "844800", "960000"});
         
         PROFILE_DEFAULTS.put(KEY_CPU_LITTLE_MAX_FREQ, new String[]{"1804800", "1804800", "1804800"});
-        PROFILE_DEFAULTS.put(KEY_CPU_BIG_MAX_FREQ,    new String[]{"2212000", "2419200", "2419200"});
+        PROFILE_DEFAULTS.put(KEY_CPU_BIG_MAX_FREQ,    new String[]{"2227200", "2419200", "2419200"});
         PROFILE_DEFAULTS.put(KEY_CPU_PRIME_MAX_FREQ,  new String[]{"2592000", "2841600", "2841600"});
         
         PROFILE_DEFAULTS.put(KEY_GPU_MIN_FREQ,        new String[]{"315000000", "315000000", "315000000"});
