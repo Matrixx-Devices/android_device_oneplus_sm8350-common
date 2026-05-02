@@ -10,8 +10,8 @@
          The default is false. -->
     <bool name="config_lidControlsSleep">true</bool>
 
-    <!-- True if camera app should be pinned via Pinner Service -->
-    <bool name="config_pinnerCameraApp">true</bool>
+    <!-- Bytes that the PinnerService will pin for Camera app -->
+    <integer name="config_pinnerCameraPinBytes">83886080</integer>
 
     <!-- Bytes that the PinnerService will pin for Home app -->
     <integer name="config_pinnerHomePinBytes">6291456</integer>
