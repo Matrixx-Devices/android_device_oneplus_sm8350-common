@@ -1,7 +1,12 @@
 [
   {
     "repository": "hardware_oplus",
-    "target_path": "hardware/oplus"
+    "target_path": "hardware/oplus",
+    "revision": "16.2-op9"
+  },
+  {
+    "repository": "vendor_oneplus_sm8350-common",
+    "target_path": "vendor/oneplus/sm8350-common"
   },
   {
     "repository": "hardware_pixelworks_interfaces",
