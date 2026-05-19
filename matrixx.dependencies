@@ -15,5 +15,9 @@
   {
     "repository": "kernel_oneplus_sm8350",
     "target_path": "kernel/oneplus/sm8350"
+  },
+  { 
+    "repository": "vendor_sony_dolby",
+    "target_path": "vendor/sony/dolby"
   }
 ]
