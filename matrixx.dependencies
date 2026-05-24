@@ -9,6 +9,10 @@
     "target_path": "vendor/oneplus/sm8350-common"
   },
   {
+    "repository": "vendor_graphene_camera",
+    "target_path": "vendor/graphene/camera"
+  },
+  {
     "repository": "hardware_pixelworks_interfaces",
     "target_path": "hardware/pixelworks/interfaces"
   },
